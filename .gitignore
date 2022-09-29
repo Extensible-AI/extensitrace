@@ -1,0 +1,13 @@
+__pycache__
+*.json
+*.txt
+.venv
+.env
+event_log.json
+*.egg-info/
+extensilogger/extensilogger.egg-info
+extensilogger/extensilogger.egg-info/
+build/
+venv/
+!requirements.txt
+ExtensiLogger/extensilogger.egg-info/PKG-INFO
