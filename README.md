@@ -7,6 +7,7 @@ Help solve general agents by contributing to this repo!
 **Ideas for Improvement**
 - Scrolling (easy to add, but likely to cause divergence)
 - Better context management (learning from mistakes, more descriptive history)
+- Masking the image with node IDs
 - Better DOM parsing (please submit issues/PRs!)
 - More explicit planning
 - Data collection and fine-tuning
