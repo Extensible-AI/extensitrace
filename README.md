@@ -1,14 +1,17 @@
-# natbot
+# globot
 
-Drive a browser with GPT-3
+With GPT-4V, we can finally complete the original vision of [natbot](https://github.com/nat/natbot).
 
-Here's a demo: https://twitter.com/natfriedman/status/1575631194032549888
+Help solve general agents by contributing to this repo!
 
-Lots of ideas for improvement:
-- Better prompt
-- Prompt chaining
-- Make a recorder to collect human feedback and do better few-shot
-- Better DOM serialization
-- Let the agent use multiple tabs and switch between them
+**Ideas for Improvement**
+- Scrolling (easy to add, but likely to cause divergence)
+- Better context management (learning from mistakes, more descriptive history)
+- Better DOM parsing (please submit issues/PRs!)
+- More explicit planning
+- Data collection and fine-tuning
 
-Improvements welcome!
+*NOTE:* Remember to use the latest release of the openai API for the vision model:
+```bash
+pip install --upgrade openai
+```
