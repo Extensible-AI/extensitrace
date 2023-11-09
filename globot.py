@@ -1,11 +1,12 @@
 import io
 import sys
+import time
 import json
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-# See __init__ function
-# from fake_useragent import UserAgent
+# See Globot.__init__ function
+from fake_useragent import UserAgent
 
 VOID_ELEMENTS = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
 READABLE_ATTRIBUTES = {'title', 'alt', 'href', 'placeholder', 'label', 'value', 'caption', 'summary', 'aria-label', 'aria-describedby', 'datetime', 'download', 'selected', 'checked', 'type'}
@@ -80,45 +81,51 @@ class DOMNode:
 class Globot:
     def __init__(self, headless=False):
         self.browser = (
-			sync_playwright()
-			.start()
-			.chromium.launch(headless=headless)
-		)
+            sync_playwright()
+            .start()
+            .chromium.launch(headless=headless)
+        )
         
         self.context = self.browser.new_context(
             # Uncomment if you start getting blocked
-			# user_agent=UserAgent().random,
-			ignore_https_errors=True,
-		)
+            user_agent=UserAgent().random,
+            ignore_https_errors=True,
+        )
+        # Some websites require cookies to be set
+        self.context.add_cookies([
+            {"name": "cookie_name", "value": "cookie_value", "domain": "example.com", "path": "/", "expires": int(time.time()) + 3600}
+        ])
         self.page = self.context.new_page()
         self.page.set_viewport_size({"width": 1280, "height": 1080})
-
 
     def go_to_page(self, url):
         self.page.goto(url=url if "://" in url else "https://" + url, timeout=60000)
         self.client = self.page.context.new_cdp_session(self.page)
+        self.page.wait_for_load_state("networkidle")
 
+    def go_back(self):
+        self.page.go_back()
+        self.page.wait_for_load_state("networkidle")
+        
     def scroll(self, direction):
         if direction == "up":
-            self.page.evaluate(
-				"(document.scrollingElement || document.body).scrollTop = (document.scrollingElement || document.body).scrollTop - window.innerHeight;"
-			)
+            self.page.mouse.wheel(delta_x=0, delta_y=-1000)
         elif direction == "down":
-            self.page.evaluate(
-				"(document.scrollingElement || document.body).scrollTop = (document.scrollingElement || document.body).scrollTop + window.innerHeight;"
-			)
+            self.page.mouse.wheel(delta_x=0, delta_y=1000)
+        self.page.wait_for_load_state("networkidle")
 
     def click(self, node: DOMNode):
         # Inject javascript into the page which removes the target= attribute from all links
         js = """
         links = document.getElementsByTagName("a");
         for (var i = 0; i < links.length; i++) {
-        	links[i].removeAttribute("target");
+            links[i].removeAttribute("target");
         }
         """
         self.page.evaluate(js) 
         assert node.center is not None, "Cannot click on node with no bounds"
         self.page.mouse.click(*node.center)
+        self.page.wait_for_load_state("networkidle")
 
     def type(self, node: DOMNode, text, submit=False):
         if not node.inputChecked:
@@ -126,14 +133,15 @@ class Globot:
         self.page.keyboard.type(text)
         if submit:
             self.page.keyboard.press("Enter")
+        self.page.wait_for_load_state("networkidle")
 
     def crawl(self):
         screenshot = Image.open(io.BytesIO(self.page.screenshot())).convert("RGB")
 
         dom = self.client.send(
-			"DOMSnapshot.captureSnapshot",
-			{"computedStyles": [], "includeDOMRects": True, "includePaintOrder": True},
-		)
+            "DOMSnapshot.captureSnapshot",
+            {"computedStyles": [], "includeDOMRects": True, "includePaintOrder": True},
+        )
         with open("dom.json", "w") as f:
             f.write(json.dumps(dom, indent=4))
 
@@ -195,13 +203,11 @@ class Globot:
         clickable_elements = {}
         def find_interactive_elements(node):
             nonlocal count
-            # (node.isClickable and node.nodeName not in UNCLICKABLE_ELEMENTS)
             clickable = node.nodeName in CLICKABLE_ELEMENTS and node.isClickable and node.center is not None
 
             inputable = node.nodeName in INPUT_ELEMENTS or node.inputValue is not None
 
             visible = node.on_screen(screen_bounds) and 'visibility: hidden' not in node.attributes.get('style', '')
-            # node_empty = not node.string_attributes and not node.nodeValue
 
             if visible and (clickable or inputable):
                 if clickable:
