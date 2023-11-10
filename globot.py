@@ -120,11 +120,11 @@ class Globot:
         """
         self.page.evaluate(js) 
         assert node.center is not None, "Cannot click on node with no bounds"
-        self.page.mouse.dblclick(*node.center)
+        self.page.mouse.click(*node.center)
 
     def type(self, node: DOMNode, text, submit=False):
         if not node.inputChecked:
-            self.click(node)
+            self.page.mouse.dblclick(*node.center)
         self.page.keyboard.type(text)
         if submit:
             self.page.keyboard.press("Enter")
