@@ -15,8 +15,8 @@ IMG_RES = 768
 MAX_RETRIES = 3
 
 
-def choose_action(objective, messages, img, inputs, clickables, use_vision=True):
-    if use_vision:
+def choose_action(objective, messages, img, inputs, clickables):
+    if USE_VISION:
         W, H = img.size
         img = img.resize((IMG_RES, int(IMG_RES* H/W)))
         buffer = BytesIO()
@@ -92,7 +92,7 @@ type(id=..., text=..., submit=...)
                 "Pay attention to your action history to no repeat your mistakes!\n"
                 "You can only click on nodes with clickable=True, or type into nodes with inputable=True.\n"
                 "You can only call one function at a time, choose between go_back(), scroll_up(), scroll_down(), click() and type() and output a single one-line code block\n"
-                "Output in the following format:\n" + output_format +
+                "Output in the following format:\n" + output_format + "\n"
                 "Do not repeat the questions in the output, only the headings and numbers."
             )
         }
@@ -107,7 +107,7 @@ type(id=..., text=..., submit=...)
 
     user_message = {
         'role': 'user',
-        'content': user_prompt if not use_vision else [
+        'content': user_prompt if not USE_VISION else [
             {'type': 'text', 'text': 'This is an image of the browser.'},
             {'type': 'image_url', 'image_url': f'data:image/png;base64,{img_base64}'},
             {'type': 'text', 'text': user_prompt},
@@ -119,7 +119,7 @@ type(id=..., text=..., submit=...)
     result = None
     while retries < MAX_RETRIES:
         response = client.chat.completions.create(
-            model="gpt-4-vision-preview" if use_vision else "gpt-4-1106-preview",
+            model="gpt-4-vision-preview" if USE_VISION else "gpt-4-1106-preview",
             messages=messages,
             temperature=0.0,
             max_tokens=500,
@@ -223,7 +223,7 @@ def main(force_run=False):
     while True:
         try:
             img, inputs, clickables = bot.crawl()
-            func, args = choose_action(objective, messages, img, inputs, clickables, use_vision=USE_VISION)
+            func, args = choose_action(objective, messages, img, inputs, clickables)
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -259,7 +259,14 @@ def main(force_run=False):
                 bot.scroll(args[0])
             else:
                 bot.go_back()
-        elif command == "g":
+            continue    
+        
+        print(
+            "(g) go to url\n(b) go back\n(u) scroll up\n(d) scroll down\n(c) click\n(t) type\n" +
+            "(h) view help again\n(r/enter) to run GPT command\n(o) change objective\n"
+        )
+
+        if command == "g":
             url = input("URL:")
             bot.go_to_page(url)
         elif command == "b":
@@ -277,11 +284,6 @@ def main(force_run=False):
             bot.type(clickables[id], text, submit)
         elif command == "o":
             objective = input("Objective:")
-        else:
-            print(
-                "(g) to visit url\n(u) scroll up\n(d) scroll down\n(c) to click\n(t) to type\n" +
-                "(h) to view commands again\n(r/enter) to run suggested command\n(o) change objective"
-            )
 
 
 if __name__ == '__main__':
