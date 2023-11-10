@@ -245,11 +245,11 @@ def main(force_run=False):
             action = f'Scroll {args[0]}\n'
         else:
             action = 'Go back\n'
-        # history.append('URL: ' + bot.page.url[:100]+ '\n' + action)
+        
         print(action)
 
-        command = 'r' if force_run else input("Run command? (y/n):")
-        if command == "r" or command == "":
+        command = 'y' if force_run else input("Run command? (Y/n):").lower()
+        if command == "y" or command == "":
             if func == 'CLICK':
                 bot.click(clickables[node_id])
             elif func == 'TYPE':

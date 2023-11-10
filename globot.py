@@ -97,22 +97,23 @@ class Globot:
         ])
         self.page = self.context.new_page()
         self.page.set_viewport_size({"width": 1280, "height": 1080})
+        self.page.wait_for_load_state()
 
     def go_to_page(self, url):
         self.page.goto(url=url if "://" in url else "https://" + url, timeout=60000)
         self.client = self.page.context.new_cdp_session(self.page)
-        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_load_state()
 
     def go_back(self):
         self.page.go_back()
-        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_load_state()
         
     def scroll(self, direction):
         if direction == "up":
             self.page.mouse.wheel(delta_x=0, delta_y=-1000)
         elif direction == "down":
             self.page.mouse.wheel(delta_x=0, delta_y=1000)
-        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_load_state()
 
     def click(self, node: DOMNode):
         # Inject javascript into the page which removes the target= attribute from all links
@@ -125,7 +126,7 @@ class Globot:
         self.page.evaluate(js) 
         assert node.center is not None, "Cannot click on node with no bounds"
         self.page.mouse.click(*node.center)
-        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_load_state()
 
     def type(self, node: DOMNode, text, submit=False):
         if not node.inputChecked:
@@ -133,7 +134,7 @@ class Globot:
         self.page.keyboard.type(text)
         if submit:
             self.page.keyboard.press("Enter")
-        self.page.wait_for_load_state("networkidle")
+        self.page.wait_for_load_state()
 
     def crawl(self):
         screenshot = Image.open(io.BytesIO(self.page.screenshot())).convert("RGB")
