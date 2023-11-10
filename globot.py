@@ -95,24 +95,20 @@ class Globot:
             {"name": "cookie_name", "value": "cookie_value", "domain": "example.com", "path": "/", "expires": int(time.time()) + 3600}
         ])
         self.page = self.context.new_page()
-        self.page.set_viewport_size({"width": 1280, "height": 1080})
-        self.page.wait_for_load_state("networkidle")
+        self.page.set_viewport_size({"width": 1920, "height": 1080})
 
     def go_to_page(self, url):
-        self.page.goto(url=url if "://" in url else "https://" + url, timeout=60000)
+        self.page.goto(url=url if "://" in url else "https://" + url, timeout=10000)
         self.client = self.page.context.new_cdp_session(self.page)
-        self.page.wait_for_load_state("networkidle")
 
     def go_back(self):
         self.page.go_back()
-        self.page.wait_for_load_state("networkidle")
         
     def scroll(self, direction):
         if direction == "up":
-            self.page.mouse.wheel(delta_x=0, delta_y=-1000)
+            self.page.mouse.wheel(delta_x=0, delta_y=-900)
         elif direction == "down":
-            self.page.mouse.wheel(delta_x=0, delta_y=1000)
-        self.page.wait_for_load_state("networkidle")
+            self.page.mouse.wheel(delta_x=0, delta_y=900)
 
     def click(self, node: DOMNode):
         # Inject javascript into the page which removes the target= attribute from all links
@@ -124,8 +120,7 @@ class Globot:
         """
         self.page.evaluate(js) 
         assert node.center is not None, "Cannot click on node with no bounds"
-        self.page.mouse.click(*node.center)
-        self.page.wait_for_load_state("networkidle")
+        self.page.mouse.dblclick(*node.center)
 
     def type(self, node: DOMNode, text, submit=False):
         if not node.inputChecked:
@@ -133,9 +128,11 @@ class Globot:
         self.page.keyboard.type(text)
         if submit:
             self.page.keyboard.press("Enter")
-        self.page.wait_for_load_state("networkidle")
 
     def crawl(self):
+        self.page.wait_for_load_state("networkidle")
+        print("\nPage loaded!\n")
+
         screenshot = Image.open(io.BytesIO(self.page.screenshot())).convert("RGB")
 
         dom = self.client.send(
@@ -154,7 +151,7 @@ class Globot:
         win_left_bound 	= self.page.evaluate("window.pageXOffset") 
         win_width 		= self.page.evaluate("window.screen.width")
         win_height 		= self.page.evaluate("window.screen.height")
-        screen_bounds = (win_upper_bound, win_left_bound, win_width, win_height)
+        screen_bounds   = (win_upper_bound, win_left_bound, win_width, win_height)
 
         nodes = []
         root = None
