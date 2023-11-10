@@ -10,7 +10,7 @@ from openai import OpenAI
 from globot import Globot
 
 
-USE_VISION = True
+USE_VISION = False
 IMG_RES = 768
 MAX_RETRIES = 3
 
@@ -92,7 +92,8 @@ type(id=..., text=..., submit=...)
                 "Pay attention to your action history to no repeat your mistakes!\n"
                 "You can only click on nodes with clickable=True, or type into nodes with inputable=True.\n"
                 "You can only call one function at a time, choose between go_back(), scroll_up(), scroll_down(), click() and type() and output a single one-line code block\n"
-                "Output in the following format:\n" + output_format
+                "Output in the following format:\n" + output_format +
+                "Do not repeat the questions in the output, only the headings and numbers."
             )
         }
         messages.append(system_message)
