@@ -79,23 +79,20 @@ class DOMNode:
 
 class Globot:
     def __init__(self, headless=False):
-        self.browser = (
-            sync_playwright()
-            .start()
-            .chromium.launch(headless=headless)
-        )
+        playwright = sync_playwright().start()
+        self.browser = playwright.chromium.launch(headless=headless)
         
-        self.context = self.browser.new_context(
-            # Uncomment if you start getting blocked
-            user_agent=UserAgent().random,
-            ignore_https_errors=True,
-        )
+        # Remove HiDPI if on a low resolution screen
+        device = playwright.devices['Desktop Chrome HiDPI']
+        # Uncomment if you start getting blocked
+        # device['userAgent'] = UserAgent().random
+        self.context = self.browser.new_context(**device, locale="en-US")
+
         # Some websites require cookies to be set
         self.context.add_cookies([
             {"name": "cookie_name", "value": "cookie_value", "domain": "example.com", "path": "/", "expires": int(time.time()) + 3600}
         ])
         self.page = self.context.new_page()
-        self.page.set_viewport_size({"width": 1920, "height": 1080})
 
     def go_to_page(self, url):
         self.page.goto(url=url if "://" in url else "https://" + url, timeout=10000)
@@ -146,12 +143,10 @@ class Globot:
         document = dom['documents'][0]
         dom_layout = document['layout']
         dom_nodes = document['nodes']
-
-        win_upper_bound = self.page.evaluate("window.pageYOffset")
-        win_left_bound 	= self.page.evaluate("window.pageXOffset") 
-        win_width 		= self.page.evaluate("window.screen.width")
-        win_height 		= self.page.evaluate("window.screen.height")
-        screen_bounds   = (win_upper_bound, win_left_bound, win_width, win_height)
+        
+        screen_bounds =  dom_layout['bounds'][0]
+        # For some reason `window.devicePixelRatio` this gives the wrong answer sometimes
+        device_pixel_ratio = screen_bounds[2] / self.page.evaluate("window.screen.width")
 
         nodes = []
         root = None
@@ -166,8 +161,7 @@ class Globot:
 
             if i in nodeIndex_flipped:
                 bounds = dom_layout['bounds'][nodeIndex_flipped[i]]
-                if sys.platform == "darwin":
-                    bounds = [b//2 for b in bounds]
+                bounds = [int(b / device_pixel_ratio) for b in bounds]
                 node.bounds = bounds
                 node.center = (int(bounds[0] + bounds[2]/2), int(bounds[1] + bounds[3]/2))
 
