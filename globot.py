@@ -85,7 +85,7 @@ class Globot:
         # Remove HiDPI if on a low resolution screen
         device = playwright.devices['Desktop Chrome HiDPI']
         # Uncomment if you start getting blocked
-        # device['userAgent'] = UserAgent().random
+        device['user_agent'] = UserAgent().random
         self.context = self.browser.new_context(**device, locale="en-US")
 
         # Some websites require cookies to be set
@@ -127,7 +127,9 @@ class Globot:
             self.page.keyboard.press("Enter")
 
     def crawl(self):
+        self.page.wait_for_load_state("load")
         self.page.wait_for_load_state("networkidle")
+        time.sleep(1)
         print("\nPage loaded!\n")
 
         screenshot = Image.open(io.BytesIO(self.page.screenshot())).convert("RGB")
@@ -198,7 +200,7 @@ class Globot:
 
             inputable = node.nodeName in INPUT_ELEMENTS or node.inputValue is not None
 
-            visible = node.on_screen(screen_bounds) and 'visibility: hidden' not in node.attributes.get('style', '')
+            visible = node.on_screen(root.bounds) and 'visibility: hidden' not in node.attributes.get('style', '')
 
             if visible and (clickable or inputable):
                 if clickable:

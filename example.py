@@ -214,7 +214,7 @@ type(id=..., text=..., submit=...)
     
 
 def main(force_run=False):
-    objective = input("What is your objective?\n> ")
+    # objective = input("What is your objective?\n> ")
     
     bot = Globot()
     bot.go_to_page('https://www.google.com/')
@@ -223,7 +223,8 @@ def main(force_run=False):
     while True:
         try:
             img, inputs, clickables = bot.crawl()
-            func, args = choose_action(objective, messages, img, inputs, clickables)
+            # func, args = choose_action(objective, messages, img, inputs, clickables)
+            func, args = ('', ())
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -261,9 +262,27 @@ def main(force_run=False):
                 bot.go_back()
             continue    
         
-        print(
+        s = ""
+        for i in inputs.keys() | clickables.keys():
+            inputable = False
+            clickable = False
+            if i in inputs:
+                node = inputs[i]
+                inputable = True
+            if i in clickables:
+                node = clickables[i]
+                clickable = True
+
+            s += f"<node id={i} clickable={clickable} inputable={inputable}>\n"
+            s += node.__repr__(indent=2)
+            s += "\n</node>\n"
+        html_description = s
+        print(html_description)
+
+        command = input(
+            "\nChoose a command:\n"
             "(g) go to url\n(b) go back\n(u) scroll up\n(d) scroll down\n(c) click\n(t) type\n" +
-            "(h) view help again\n(r/enter) to run GPT command\n(o) change objective\n"
+            "(h) view help again\n(o) change objective\n\n> "
         )
 
         if command == "g":
@@ -281,7 +300,7 @@ def main(force_run=False):
         elif command == "t":
             id = int(input("id:"))
             text = input("text:")
-            bot.type(clickables[id], text, submit)
+            bot.type(inputs[id], text, submit=True)
         elif command == "o":
             objective = input("Objective:")
 
