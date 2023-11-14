@@ -214,7 +214,7 @@ type(id=..., text=..., submit=...)
     
 
 def main(force_run=False):
-    # objective = input("What is your objective?\n> ")
+    objective = input("What is your objective?\n> ")
     
     bot = Globot()
     bot.go_to_page('https://www.google.com/')
@@ -223,8 +223,7 @@ def main(force_run=False):
     while True:
         try:
             img, inputs, clickables = bot.crawl()
-            # func, args = choose_action(objective, messages, img, inputs, clickables)
-            func, args = ('', ())
+            func, args = choose_action(objective, messages, img, inputs, clickables)
         except Exception as e:
             print(e)
             traceback.print_exc()
