@@ -94,18 +94,45 @@ class Globot:
         ])
         self.page = self.context.new_page()
 
+    def wait_for_load(self, timeout=10, stable_thresh=0.5):
+        dom = None
+        dt = 0.1
+        stable_time = 0
+
+        for _ in range(int(timeout/dt)):
+            new_dom = self.client.send(
+                "DOMSnapshot.captureSnapshot",
+                {"computedStyles": [], "includeDOMRects": True, "includePaintOrder": True},
+            )
+            if new_dom == dom:
+                stable_time += dt
+                print('.', end='', flush=True)
+            else:
+                stable_time = 0
+                print('\rLoading page     \b\b\b\b\b', end='', flush=True)  # Overwrite and move cursor back
+
+            if stable_time >= stable_thresh:
+                break
+
+            time.sleep(dt)
+            dom = new_dom
+        print()
+
     def go_to_page(self, url):
         self.page.goto(url=url if "://" in url else "https://" + url, timeout=10000)
         self.client = self.page.context.new_cdp_session(self.page)
+        self.wait_for_load()
 
     def go_back(self):
         self.page.go_back()
+        self.wait_for_load()
         
     def scroll(self, direction):
         if direction == "up":
             self.page.mouse.wheel(delta_x=0, delta_y=-900)
         elif direction == "down":
             self.page.mouse.wheel(delta_x=0, delta_y=900)
+        self.wait_for_load()
 
     def click(self, node: DOMNode):
         # Inject javascript into the page which removes the target= attribute from all links
@@ -118,6 +145,7 @@ class Globot:
         self.page.evaluate(js) 
         assert node.center is not None, "Cannot click on node with no bounds"
         self.page.mouse.click(*node.center)
+        self.wait_for_load()
 
     def type(self, node: DOMNode, text, submit=False):
         if not node.inputChecked:
@@ -125,12 +153,9 @@ class Globot:
         self.page.keyboard.type(text)
         if submit:
             self.page.keyboard.press("Enter")
+        self.wait_for_load()
 
     def crawl(self):
-        self.page.wait_for_load_state("load")
-        self.page.wait_for_load_state("networkidle")
-        time.sleep(1)
-        print("\nPage loaded!\n")
 
         screenshot = Image.open(io.BytesIO(self.page.screenshot())).convert("RGB")
 
