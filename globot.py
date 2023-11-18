@@ -5,8 +5,6 @@ import json
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-# See Globot.__init__ function
-from fake_useragent import UserAgent
 
 VOID_ELEMENTS = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
 READABLE_ATTRIBUTES = {'title', 'alt', 'href', 'placeholder', 'label', 'value', 'caption', 'summary', 'aria-label', 'aria-describedby', 'datetime', 'download', 'selected', 'checked', 'type'}
