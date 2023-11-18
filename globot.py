@@ -84,10 +84,8 @@ class Globot:
         
         # Remove HiDPI if on a low resolution screen
         device = playwright.devices['Desktop Chrome HiDPI']
-        # Uncomment if you start getting blocked
-        device['user_agent'] = UserAgent().random
-        self.context = self.browser.new_context(**device, locale="en-US")
-
+        self.context = self.browser.new_context(**device)
+        self.context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         # Some websites require cookies to be set
         self.context.add_cookies([
             {"name": "cookie_name", "value": "cookie_value", "domain": "example.com", "path": "/", "expires": int(time.time()) + 3600}
