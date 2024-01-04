@@ -17,4 +17,5 @@ Help solve general agents by contributing to this repo!
 pip install --upgrade openai
 ```
 
+---
 *made by Ivan Yevenko*
