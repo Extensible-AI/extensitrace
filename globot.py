@@ -2,7 +2,6 @@ import io
 import sys
 import time
 import json
-from PIL import Image
 from playwright.sync_api import sync_playwright
 
 
@@ -152,9 +151,7 @@ class Globot:
         self.wait_for_load()
 
     def crawl(self):
-
-        screenshot = Image.open(io.BytesIO(self.page.screenshot())).convert("RGB")
-
+        screenshot = ""
         dom = self.client.send(
             "DOMSnapshot.captureSnapshot",
             {"computedStyles": [], "includeDOMRects": True, "includePaintOrder": True},

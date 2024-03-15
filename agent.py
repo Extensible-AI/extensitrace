@@ -1,20 +1,21 @@
 import base64
 import json
 import re
-import sys
 import traceback
 import time
 from io import BytesIO
 from functools import partial
-
+from minimal_logger import logger
 from openai import OpenAI
 from globot import Globot
 
 
 USE_VISION = False
+FORCE_RUN = True
 IMG_RES = 768
 MAX_RETRIES = 3
 
+client = OpenAI()
 
 def _fake_func(name, **kwargs):
     return name, kwargs
@@ -48,7 +49,7 @@ FUNCTIONS = {
     },
 }
 
-
+@logger.log_openai_call('choose_action')
 def choose_action(objective, messages, img, inputs, clickables):
     if USE_VISION:
         W, H = img.size
@@ -76,9 +77,7 @@ def choose_action(objective, messages, img, inputs, clickables):
 
     # log for debug
     with open('html_description.txt', 'w') as f:
-        f.write(html_description)
-
-    client = OpenAI()
+        f.write(html_description) 
 
     output_format = """\
 ## Reflection
@@ -136,18 +135,11 @@ Call ONE of the following functions:
             model="gpt-4-vision-preview" if USE_VISION else "gpt-4-1106-preview",
             messages=messages,
             temperature=0.0,
-            max_tokens=500,
-            stream=True
+            max_tokens=500
         )
 
-        response_message = ""
-        for chunk in response:
-            delta = chunk.choices[0].delta.content
-            if not delta:
-                continue
-            response_message += delta
-            print(delta, end='', flush=True)
-        print()
+        response_message = response.choices[0].message.content
+        print(response_message)
         messages.append({'role': 'assistant', 'content': response_message})
 
         with open('messages.txt', 'w') as f:
@@ -183,7 +175,7 @@ Call ONE of the following functions:
     
 
 def main(force_run=False):
-    objective = input("What is your objective?\n> ")
+    objective = "reaearch about pi.com and write a short sentence about them" # input("What is your objective?\n> ")
     
     bot = Globot()
     bot.go_to_page('https://www.google.com/')
@@ -251,7 +243,7 @@ def main(force_run=False):
 
 
 if __name__ == '__main__':
-    force_run = len(sys.argv) > 1 and 'y' in sys.argv[1]
+    force_run = FORCE_RUN
     try:
         main(force_run=force_run)
     except KeyboardInterrupt:
