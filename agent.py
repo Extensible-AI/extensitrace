@@ -75,10 +75,6 @@ def choose_action(objective, messages, img, inputs, clickables):
         s += "\n</node>\n"
     html_description = s
 
-    # log for debug
-    with open('html_description.txt', 'w') as f:
-        f.write(html_description) 
-
     output_format = """\
 ## Reflection
 1. Did you your last action get your closer to your objective? If this is your first action, just put "N/A".
@@ -128,6 +124,13 @@ Call ONE of the following functions:
     }
     messages.append(user_message)
 
+    response1 = client.chat.completions.create(
+            model="gpt-4-vision-preview" if USE_VISION else "gpt-4-1106-preview",
+            messages=messages,
+            temperature=0.0,
+            max_tokens=500
+        )
+
     retries = 0
     kwargs = {}
     while retries < MAX_RETRIES:
@@ -139,11 +142,7 @@ Call ONE of the following functions:
         )
 
         response_message = response.choices[0].message.content
-        print(response_message)
         messages.append({'role': 'assistant', 'content': response_message})
-
-        with open('messages.txt', 'w') as f:
-            json.dump(messages, f, indent=4)
         
         try:
             code = re.findall(r'```(?:python)?\n(.*?)\n```', response_message, re.DOTALL)
@@ -193,14 +192,11 @@ def main(force_run=False):
             time.sleep(2)
             continue
 
-        print('\nGPT Command:')
-        action = 'NO ACTION SELECTED'
         if   func == 'type':                    action = f"Type {' and submit' if args['submit'] else ''}'{args['text']}' into:\n{inputs[args['id']]}\n"
         elif func == 'click':                   action = f"Click:\n{clickables[args['id']]}\n"
         elif func == 'scroll':                  action = f'Scroll {args["direction"]}\n'
         elif func == 'go_back':                 action = 'Go back\n'
         elif func == 'set_objective_complete':  action = 'Objective complete!!'
-        print(action)
 
         command = 'y' if force_run else input("Run command? (Y/n):").lower()
         if command == "y" or command == "":
@@ -225,8 +221,6 @@ def main(force_run=False):
             s += f"<node id={i} clickable={clickable} inputable={inputable}>\n"
             s += node.__repr__(indent=2)
             s += "\n</node>\n"
-        html_description = s
-        print(html_description)
 
         command = input(
             "\nChoose a command:\n"

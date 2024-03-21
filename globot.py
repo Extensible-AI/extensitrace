@@ -75,7 +75,7 @@ class DOMNode:
 
 
 class Globot:
-    def __init__(self, headless=False):
+    def __init__(self, headless=True):
         playwright = sync_playwright().start()
         self.browser = playwright.chromium.launch(headless=headless)
         
@@ -156,8 +156,6 @@ class Globot:
             "DOMSnapshot.captureSnapshot",
             {"computedStyles": [], "includeDOMRects": True, "includePaintOrder": True},
         )
-        with open("dom.json", "w") as f:
-            f.write(json.dumps(dom, indent=4))
 
         dom_strings = dom['strings']
         document = dom['documents'][0]
