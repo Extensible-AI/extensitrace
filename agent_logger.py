@@ -8,19 +8,21 @@ import uuid
 import openai
 
 class AgentLogger:
-    def __init__(self, flush_interval=1, log_file='event_log.json'):
+    def __init__(self, flush_interval=10, log_file='./event_log.json'):
         self.event_queue = Queue()
         self.flush_interval = flush_interval
         self.counter = 0
         self.lock = threading.Lock()
         self.log_file = log_file
         self.agent_id = str(uuid.uuid4())
-        self.run_id = None
+        self.current_task_id = None
 
-    def log(self):
+    def log(self, track=False):
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
+                if track:
+                    self.current_task_id = str(uuid.uuid4())
                 start_time = datetime.now().isoformat()
                 
                 # Capture the original function's arguments
@@ -39,7 +41,8 @@ class AgentLogger:
                         start_time=chat_call_start_time,
                         end_time=chat_call_end_time,
                         args=chat_args_dict,
-                        result=result.model_dump()
+                        result=result.model_dump(),
+                        agent_id=self.agent_id
                     )
                     return result
 
@@ -77,6 +80,7 @@ class AgentLogger:
             return str(value)
 
     def __log_event(self, **log_entry):
+        log_entry['task_id'] = self.current_task_id if self.current_task_id else str(uuid.uuid4())
         self.event_queue.put(log_entry)
         with self.lock:
             self.counter += 1
@@ -116,9 +120,7 @@ class AgentLogger:
                 # For all other function calls, add the entry directly
                 new_data.append(log_entry)
 
-        # Sort the new data based on 'start_time' before combining
-        sorted_new_data = sorted(new_data, key=lambda x: x['start_time'], reverse=True)
-        combined_data = existing_data + sorted_new_data
+        combined_data = new_data + existing_data
 
         try:
             # Write the updated log data back to the file
@@ -126,6 +128,5 @@ class AgentLogger:
                 json.dump(combined_data, f, indent=2)
         except Exception as e:
             print(f'Error writing to file: {e}')
-
 
 logger = AgentLogger(flush_interval=1)
