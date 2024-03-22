@@ -5,7 +5,7 @@ import traceback
 import time
 from io import BytesIO
 from functools import partial
-from minimal_logger import logger
+from agent_logger import logger
 from openai import OpenAI
 from globot import Globot
 
