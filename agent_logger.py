@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import inspect
 import functools
 import json
@@ -8,7 +9,7 @@ import uuid
 import openai
 
 class AgentLogger:
-    def __init__(self, flush_interval=10, log_file='./event_log.json'):
+    def __init__(self, client=None, flush_interval=10, log_file='./event_log.json'):
         self.event_queue = Queue()
         self.flush_interval = flush_interval
         self.counter = 0
@@ -16,6 +17,32 @@ class AgentLogger:
         self.log_file = log_file
         self.agent_id = str(uuid.uuid4())
         self.current_task_id = None
+        self.client = client or openai
+
+    @contextmanager
+    def mock_openai_create(self):
+        original_create = self.client.chat.completions.create
+
+        def mock_create(*args, **kwargs):
+            chat_call_start_time = datetime.now().isoformat()
+            chat_args_dict = {k: self.__serialize_value(v) for k, v in kwargs.items()}
+            result = original_create(*args, **kwargs)
+            chat_call_end_time = datetime.now().isoformat()
+            self.__log_event(
+                function_name='openai.chat.completions.create',
+                start_time=chat_call_start_time,
+                end_time=chat_call_end_time,
+                args=chat_args_dict,
+                result=result.model_dump(),
+                agent_id=self.agent_id
+            )
+            return result
+
+        self.client.chat.completions.create = mock_create
+        try:
+            yield
+        finally:
+            self.client.chat.completions.create = original_create
 
     def log(self, track=False):
         def decorator(func):
@@ -30,7 +57,7 @@ class AgentLogger:
                 func_args_dict = {k: self.__serialize_value(v) for k, v in func_args.items()}
 
                 # Log the call to openai.chat.completions.create if it happens
-                original_create = openai.chat.completions.create
+                original_create = self.client.chat.completions.create
                 def mock_create(*args, **kwargs):
                     chat_call_start_time = datetime.now().isoformat()
                     chat_args_dict = {k: self.__serialize_value(v) for k, v in kwargs.items()}
@@ -46,16 +73,17 @@ class AgentLogger:
                     )
                     return result
 
-                openai.chat.completions.create = mock_create
+                self.client.chat.completions.create = mock_create
                 
                 try:
                     result = func(*args, **kwargs)
                 finally:
                     # Ensure the original method is restored
-                    openai.chat.completions.create = original_create
+                    self.client.chat.completions.create = original_create
 
                 end_time = datetime.now().isoformat()
                 
+                print(func.__name__, start_time)
                 self.__log_event(
                     function_name=func.__name__,
                     start_time=start_time,
@@ -99,26 +127,10 @@ class AgentLogger:
         except json.JSONDecodeError:
             print('JSON decode error in the existing file. Starting fresh.')
 
-        # This set will track the client_msg_ids of 'openai.chat.completions.create' function calls
-        client_msg_ids = set(
-            entry.get('args', {}).get('event_data', {}).get('client_msg_id')
-            for entry in existing_data
-            if entry.get('function_name') == 'openai.chat.completions.create'
-        )
-
         new_data = []
         while not self.event_queue.empty():
-            log_entry = self.event_queue.get()
-            # Check if the log entry is for an OpenAI API call
-            if log_entry.get('function_name') == 'openai.chat.completions.create':
-                client_msg_id = log_entry.get('args', {}).get('event_data', {}).get('client_msg_id')
-                # Add the log entry if it's not a duplicate
-                if client_msg_id not in client_msg_ids:
-                    new_data.append(log_entry)
-                    client_msg_ids.add(client_msg_id)
-            else:
-                # For all other function calls, add the entry directly
-                new_data.append(log_entry)
+            log_entry = self.event_queue.get() 
+            new_data.append(log_entry)
 
         combined_data = new_data + existing_data
 
@@ -128,5 +140,3 @@ class AgentLogger:
                 json.dump(combined_data, f, indent=2)
         except Exception as e:
             print(f'Error writing to file: {e}')
-
-logger = AgentLogger(flush_interval=1)
