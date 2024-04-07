@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import inspect
 import functools
 import json
@@ -8,17 +7,18 @@ import threading
 import uuid
 import openai
 
-from singleton import Singleton
+from log_library.log_utils import update_log_viewer
+from log_library.singleton import Singleton
 
 class AgentLogger(metaclass=Singleton):
-    def __init__(self, client=None, flush_interval=10, log_file='./event_log.json'):
-        self.client = client
-        self.flush_interval = flush_interval
+    def __init__(self, client=None, log_file='./event_log.json'):
+        self.client = client or openai
         self.log_file = log_file
         self.event_queue = Queue()
         self.lock = threading.Lock()
         self.agent_id = str(uuid.uuid4())
         self.current_task_id = None
+        self.prev_task_id = None
 
     def log(self, track=False):
         def decorator(func):
@@ -54,12 +54,10 @@ class AgentLogger(metaclass=Singleton):
                 try:
                     result = func(*args, **kwargs)
                 finally:
-                    # Ensure the original method is restored
                     self.client.chat.completions.create = original_create
 
                 end_time = datetime.now().isoformat()
                 
-                print(func.__name__, start_time)
                 self.__log_event(
                     function_name=func.__name__,
                     start_time=start_time,
@@ -85,10 +83,13 @@ class AgentLogger(metaclass=Singleton):
 
     def __log_event(self, **log_entry):
         log_entry['task_id'] = self.current_task_id if self.current_task_id else str(uuid.uuid4())
+
+        if self.prev_task_id != self.current_task_id:
+            with self.lock:
+                self.__flush_queue()  # Flush the queue if the task ID has changed
+            self.prev_task_id = self.current_task_id
+
         self.event_queue.put(log_entry)
-        with self.lock:
-            if self.event_queue.qsize() >= self.flush_interval:
-                self.__flush_queue()
 
     def __flush_queue(self):
         existing_data = []
@@ -102,11 +103,24 @@ class AgentLogger(metaclass=Singleton):
             print('JSON decode error in the existing file. Starting fresh.')
 
         new_data = []
+        seen_ids = set()
         while not self.event_queue.empty():
             log_entry = self.event_queue.get() 
-            new_data.append(log_entry)
 
-        combined_data = new_data + existing_data
+            # Check if id is in result, if True, it is an openai call, if error or false, its not
+            try:
+                openai_call_id = log_entry.get('result', {}).get('id')
+            except:
+                openai_call_id = False
+            
+            # Dedupe logs
+            if openai_call_id and openai_call_id not in seen_ids:
+                seen_ids.add(openai_call_id)
+                new_data.append(log_entry)
+            elif not openai_call_id:
+                new_data.append(log_entry)
+
+        combined_data = existing_data + new_data
 
         try:
             # Write the updated log data back to the file
@@ -114,3 +128,5 @@ class AgentLogger(metaclass=Singleton):
                 json.dump(combined_data, f, indent=2)
         except Exception as e:
             print(f'Error writing to file: {e}')
+
+        update_log_viewer(combined_data)
