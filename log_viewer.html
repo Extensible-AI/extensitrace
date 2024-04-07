@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JSON Log Viewer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .collapsible {
+        cursor: pointer;
+        padding: 5px;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+        background-color: #f9f9f9;
+      }
+      .active,
+      .collapsible:hover {
+        background-color: #f1f1f1;
+      }
+      .content {
+        padding: 0 18px;
+        display: none;
+        overflow: hidden;
+        background-color: #fafafa;
+        margin: 5px 0;
+      }
+      .nested {
+        margin-left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>JSON Log Viewer</h1>
+    <div id="json-viewer"></div>
+
+    <script>
+      function createCollapsibleSection(key, value, isTopLevel = false) {
+        const section = document.createElement("div");
+
+        const button = document.createElement("button");
+        if (isTopLevel && value.task_id) {
+          button.textContent = `${key} (Task ID: ${value.task_id})`;
+        } else {
+          button.textContent =
+            key + ": " + (typeof value === "object" ? "{...}" : value);
+        }
+        button.className = "collapsible";
+
+        const content = document.createElement("div");
+        content.className = "content";
+
+        button.addEventListener("click", function () {
+          this.classList.toggle("active");
+          const content = this.nextElementSibling;
+          if (content.style.display === "block") {
+            content.style.display = "none";
+          } else {
+            content.style.display = "block";
+          }
+        });
+
+        section.appendChild(button);
+        section.appendChild(content);
+
+        if (typeof value === "object" && value !== null) {
+          for (const [subKey, subValue] of Object.entries(value)) {
+            if (!(isTopLevel && subKey === "task_id")) {
+              // Skip task_id at the top level
+              content.appendChild(createCollapsibleSection(subKey, subValue));
+            }
+          }
+        } else {
+          content.textContent = value;
+        }
+
+        return section;
+      }
+
+      // DATA STARTS HERE
+      const data = [
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: "2024-04-07T18:42:05.948913",
+          end_time: "2024-04-07T18:42:06.647133",
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.",
+              },
+              { role: "user", content: "summarize 2 news on torotno" },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "get_last_n_arxiv_articles",
+                  description:
+                    "Retrieves the last N articles from arXiv for a given query.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description:
+                          "The search query to find articles in arXiv.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "n"],
+                  },
+                },
+              },
+              {
+                type: "function",
+                function: {
+                  name: "get_latest_news",
+                  description:
+                    "Retrieves the latest news articles based on a query",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description: "The search query to find news articles.",
+                      },
+                      summarize: {
+                        type: "boolean",
+                        description:
+                          "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of news articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "summarize", "n"],
+                  },
+                },
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BVV8yP3eWMCV5CwuEx5abstnIuwL",
+            choices: [
+              {
+                finish_reason: "tool_calls",
+                index: 0,
+                logprobs: "None",
+                message: {
+                  content: "None",
+                  role: "assistant",
+                  function_call: "None",
+                  tool_calls: [
+                    {
+                      id: "call_XmvIllXZ7nFLtp22UpxbAcsj",
+                      function: {
+                        arguments: '{"query":"toronto","summarize":true,"n":2}',
+                        name: "get_latest_news",
+                      },
+                      type: "function",
+                    },
+                  ],
+                },
+              },
+            ],
+            created: 1712529726,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 26,
+              prompt_tokens: 207,
+              total_tokens: 233,
+            },
+          },
+          agent_id: "bb339de6-d191-44b7-a931-8427046df36f",
+          task_id: "a53d4c75-6090-47a3-98e1-42c853bf20fc",
+        },
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: "2024-04-07T18:42:06.763542",
+          end_time: "2024-04-07T18:42:07.465782",
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are an expert news summarizer. You cover the right topics for just the right time and give succint summaries of the news that the user provides. Give free form sentences no points.",
+              },
+              {
+                role: "user",
+                content:
+                  "1. (Wired) Never-Repeating Patterns of Tiles Can Safeguard Quantum Information - Two researchers have proved that Penrose tilings, famous patterns that never repeat, are mathematically equivalent to a kind of quantum error correction.\n2. (MacRumors) Apple Pay Express Mode Now Available at Toronto Subway Stations - TTC subway stations in Toronto recently added support for Apple Pay's Express Mode, allowing riders to simply hold their iPhone or Apple Watch near the reader at the turnstile to pay for their fare. With Express Mode, there is no need to wake or unlock the de\u2026\n",
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BVV9B5IfyETmHj46uVPpGfrMXDsm",
+            choices: [
+              {
+                finish_reason: "stop",
+                index: 0,
+                logprobs: "None",
+                message: {
+                  content:
+                    "Researchers found Penrose tilings can protect quantum information, while TTC subway stations in Toronto now support Apple Pay's Express Mode for easier fare payment with iPhone or Apple Watch.",
+                  role: "assistant",
+                  function_call: "None",
+                  tool_calls: "None",
+                },
+              },
+            ],
+            created: 1712529727,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 34,
+              prompt_tokens: 168,
+              total_tokens: 202,
+            },
+          },
+          agent_id: "bb339de6-d191-44b7-a931-8427046df36f",
+          task_id: "a53d4c75-6090-47a3-98e1-42c853bf20fc",
+        },
+        {
+          function_name: "get_latest_news",
+          start_time: "2024-04-07T18:42:06.650723",
+          end_time: "2024-04-07T18:42:07.469079",
+          args: { args: { query: "toronto", summarize: true, n: 2 } },
+          result:
+            "Researchers found Penrose tilings can protect quantum information, while TTC subway stations in Toronto now support Apple Pay's Express Mode for easier fare payment with iPhone or Apple Watch.",
+          agent_id: "bb339de6-d191-44b7-a931-8427046df36f",
+          task_id: "a53d4c75-6090-47a3-98e1-42c853bf20fc",
+        },
+        {
+          function_name: "run_tool",
+          start_time: "2024-04-07T18:42:06.650568",
+          end_time: "2024-04-07T18:42:07.469105",
+          args: {
+            response:
+              "ChatCompletion(id='chatcmpl-9BVV8yP3eWMCV5CwuEx5abstnIuwL', choices=[Choice(finish_reason='tool_calls', index=0, logprobs=None, message=ChatCompletionMessage(content=None, role='assistant', function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_XmvIllXZ7nFLtp22UpxbAcsj', function=Function(arguments='{\"query\":\"toronto\",\"summarize\":true,\"n\":2}', name='get_latest_news'), type='function')]))], created=1712529726, model='gpt-3.5-turbo-0125', object='chat.completion', system_fingerprint='fp_b28b39ffa8', usage=CompletionUsage(completion_tokens=26, prompt_tokens=207, total_tokens=233))",
+          },
+          result:
+            "Researchers found Penrose tilings can protect quantum information, while TTC subway stations in Toronto now support Apple Pay's Express Mode for easier fare payment with iPhone or Apple Watch.",
+          agent_id: "bb339de6-d191-44b7-a931-8427046df36f",
+          task_id: "a53d4c75-6090-47a3-98e1-42c853bf20fc",
+        },
+        {
+          function_name: "get_openai_assistant_response",
+          start_time: "2024-04-07T18:42:05.948861",
+          end_time: "2024-04-07T18:42:07.469126",
+          args: {
+            messages: [
+              { role: "user", content: "summarize 2 news on torotno" },
+            ],
+          },
+          result:
+            "Researchers found Penrose tilings can protect quantum information, while TTC subway stations in Toronto now support Apple Pay's Express Mode for easier fare payment with iPhone or Apple Watch.",
+          agent_id: "bb339de6-d191-44b7-a931-8427046df36f",
+          task_id: "a53d4c75-6090-47a3-98e1-42c853bf20fc",
+        },
+      ];
+      // DATA ENDS HERE
+
+      const viewer = document.getElementById("json-viewer");
+      data.forEach((entry, index) => {
+        const section = createCollapsibleSection(
+          "Log Entry " + (index + 1),
+          entry,
+          true
+        );
+        viewer.appendChild(section);
+      });
+    </script>
+  </body>
+</html>

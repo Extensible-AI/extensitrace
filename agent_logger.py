@@ -7,8 +7,8 @@ import threading
 import uuid
 import openai
 
-from log_library.log_utils import update_log_viewer
-from log_library.singleton import Singleton
+from log_utils import update_log_viewer
+from singleton import Singleton
 
 class AgentLogger(metaclass=Singleton):
     def __init__(self, client=None, log_file='./event_log.json'):
