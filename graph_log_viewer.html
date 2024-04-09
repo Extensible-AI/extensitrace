@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mermaid Task Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .mermaid {
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Task Visualizer</h1>
+    <div id="mermaid-viewer"></div>
+    <script>
+      // DATA STARTS HERE
+const data = [{"function_name": "openai.chat.completions.create", "start_time": 1712601705.339235, "end_time": 1712601706.345835, "args": {"model": "gpt-3.5-turbo", "messages": [{"role": "system", "content": "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous."}, {"role": "user", "content": "hi"}], "tools": [{"type": "function", "function": {"name": "get_last_n_arxiv_articles", "description": "Retrieves the last N articles from arXiv for a given query.", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "The search query to find articles in arXiv."}, "n": {"type": "integer", "description": "The number of articles to retrieve."}}, "required": ["query", "n"]}}}, {"type": "function", "function": {"name": "get_latest_news", "description": "Retrieves the latest news articles based on a query", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "The search query to find news articles."}, "summarize": {"type": "boolean", "description": "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize."}, "n": {"type": "integer", "description": "The number of news articles to retrieve."}}, "required": ["query", "summarize", "n"]}}}]}, "result": {"id": "chatcmpl-9BoE58uWZtnA3QRm8KeWx1wTGrMEC", "choices": [{"finish_reason": "stop", "index": 0, "logprobs": 'None', "message": {"content": "Hello! How can I assist you today?", "role": "assistant", "function_call": 'None', "tool_calls": 'None'}}], "created": 1712601705, "model": "gpt-3.5-turbo-0125", "object": "chat.completion", "system_fingerprint": "fp_b28b39ffa8", "usage": {"completion_tokens": 10, "prompt_tokens": 198, "total_tokens": 208}}, "task_id": "e243240d-c9dc-4873-8420-7f08bffbdf8f", "agent_id": "90f6be3f-7d60-4187-b2c8-846738cfb167"}, {"function_name": "get_openai_assistant_response", "start_time": 1712601705.339008, "end_time": 1712601706.357007, "args": {"messages": [{"role": "user", "content": "hi"}]}, "result": "Hello! How can I assist you today?", "task_id": "e243240d-c9dc-4873-8420-7f08bffbdf8f", "agent_id": "90f6be3f-7d60-4187-b2c8-846738cfb167"}];
+      // DATA ENDS HERE
+
+      // Function to create a flame graph for each task
+      function createMermaidGraph(tasks) {
+        const mermaidViewer = document.getElementById("mermaid-viewer");
+        Object.keys(tasks).forEach((taskId) => {
+          const taskEntries = tasks[taskId];
+          let graphDefinition = `graph LR;\n`;
+          // Sort the task entries by start time before creating the graph
+          taskEntries.sort(
+            (a, b) => new Date(a.start_time) - new Date(b.start_time)
+          );
+          // Create nodes and edges for graph
+          taskEntries.forEach((entry, index) => {
+            const nextEntry = taskEntries[index + 1];
+            graphDefinition += `id${index}("${entry.function_name.replace(
+              /"/g,
+              "&quot;"
+            )}")\n`;
+            if (nextEntry) {
+              graphDefinition += `id${index} --> id${index + 1}\n`;
+            }
+          });
+          // Add the graph title
+          const graphTitle = document.createElement("h3");
+          graphTitle.textContent = `Task ID: ${taskId}`;
+          mermaidViewer.appendChild(graphTitle);
+          // Add the graph to the viewer
+          const graphDiv = document.createElement("div");
+          graphDiv.className = "mermaid";
+          graphDiv.innerHTML = graphDefinition; // Use innerHTML to insert the graph definition
+          mermaidViewer.appendChild(graphDiv);
+          mermaidViewer.appendChild(document.createElement("br"));
+        });
+        // Initialize Mermaid to render the graphs
+        mermaid.init(undefined, ".mermaid");
+      }
+      // Process the data to have them ordered by start time within each task
+      const tasksByTaskId = data.reduce((acc, item) => {
+        acc[item.task_id] = acc[item.task_id] || [];
+        acc[item.task_id].push(item);
+        return acc;
+      }, {});
+      const sortedTasks = Object.entries(tasksByTaskId).reduce(
+        (acc, [taskId, tasks]) => {
+          acc[taskId] = tasks.sort((a, b) => a.start_time - b.start_time);
+          return acc;
+        },
+        {}
+      );
+      // Create a graph for each set of tasks
+      createMermaidGraph(sortedTasks);
+    </script>
+  </body>
+</html>

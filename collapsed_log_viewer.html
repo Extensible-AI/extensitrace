@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JSON Log Viewer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .collapsible {
+        cursor: pointer;
+        padding: 5px;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+        background-color: #f9f9f9;
+      }
+      .active,
+      .collapsible:hover {
+        background-color: #f1f1f1;
+      }
+      .content {
+        padding: 0 18px;
+        display: none;
+        overflow: hidden;
+        background-color: #fafafa;
+        margin: 5px 0;
+      }
+      .nested {
+        margin-left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>JSON Log Viewer</h1>
+    <div id="json-viewer"></div>
+
+    <script>
+      function createCollapsibleSection(key, value, isTopLevel = false) {
+        const section = document.createElement("div");
+
+        const button = document.createElement("button");
+        if (isTopLevel && value.task_id) {
+          button.textContent = `${key} (Task ID: ${value.task_id})`;
+        } else {
+          button.textContent =
+            key + ": " + (typeof value === "object" ? "{...}" : value);
+        }
+        button.className = "collapsible";
+
+        const content = document.createElement("div");
+        content.className = "content";
+
+        button.addEventListener("click", function () {
+          this.classList.toggle("active");
+          const content = this.nextElementSibling;
+          if (content.style.display === "block") {
+            content.style.display = "none";
+          } else {
+            content.style.display = "block";
+          }
+        });
+
+        section.appendChild(button);
+        section.appendChild(content);
+
+        if (typeof value === "object" && value !== null) {
+          for (const [subKey, subValue] of Object.entries(value)) {
+            if (!(isTopLevel && subKey === "task_id")) {
+              // Skip task_id at the top level
+              content.appendChild(createCollapsibleSection(subKey, subValue));
+            }
+          }
+        } else {
+          content.textContent = value;
+        }
+
+        return section;
+      }
+
+      // DATA STARTS HERE
+      const data = [
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: 1712601682.700738,
+          end_time: 1712601683.616817,
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.",
+              },
+              {
+                role: "user",
+                content: "get me 2 news artciels on apple",
+              },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "get_last_n_arxiv_articles",
+                  description:
+                    "Retrieves the last N articles from arXiv for a given query.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description:
+                          "The search query to find articles in arXiv.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "n"],
+                  },
+                },
+              },
+              {
+                type: "function",
+                function: {
+                  name: "get_latest_news",
+                  description:
+                    "Retrieves the latest news articles based on a query",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description: "The search query to find news articles.",
+                      },
+                      summarize: {
+                        type: "boolean",
+                        description:
+                          "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of news articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "summarize", "n"],
+                  },
+                },
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BoDjyQuZFtFFvP4uGkAuKTlwNTBP",
+            choices: [
+              {
+                finish_reason: "tool_calls",
+                index: 0,
+                logprobs: null,
+                message: {
+                  content: null,
+                  role: "assistant",
+                  function_call: null,
+                  tool_calls: [
+                    {
+                      id: "call_0v2vYjXfOKTAuasX1aszdy8W",
+                      function: {
+                        arguments: '{"query":"apple","n":2,"summarize":false}',
+                        name: "get_latest_news",
+                      },
+                      type: "function",
+                    },
+                  ],
+                },
+              },
+            ],
+            created: 1712601683,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 25,
+              prompt_tokens: 207,
+              total_tokens: 232,
+            },
+          },
+          task_id: "059a5ab6-3944-4628-82a6-11843befd4ee",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_latest_news",
+          start_time: 1712601683.624148,
+          end_time: 1712601683.754313,
+          args: {
+            args: {
+              query: "apple",
+              n: 2,
+              summarize: false,
+            },
+          },
+          result:
+            "1. (Gizmodo.com) Goodbye Apple Car, Hello Apple Home Robots - Fresh off dumping its electric vehicles project, Apple appears to be pivoting to something fairly different: household robots. Engineers at the iPhone company have been working on some sort of \u201cpersonal robotics\u201d device that can cohabitate with you and follow\u2026\n2. (Yahoo Entertainment) AI has spoken: the Apple Car would have been adorable - After a decade of rumors and speculation, the Apple Car is dead\r\n. Last week, Bloomberg reported that the multibillion-dollar project had finally been scrapped. Reports about the electric vehicle never quite seemed real\r\n, but now we have many new details abo\u2026",
+          task_id: "059a5ab6-3944-4628-82a6-11843befd4ee",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "run_tool",
+          start_time: 1712601683.623786,
+          end_time: 1712601683.754336,
+          args: {
+            response:
+              "ChatCompletion(id='chatcmpl-9BoDjyQuZFtFFvP4uGkAuKTlwNTBP', choices=[Choice(finish_reason='tool_calls', index=0, logprobs=None, message=ChatCompletionMessage(content=None, role='assistant', function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_0v2vYjXfOKTAuasX1aszdy8W', function=Function(arguments='{\"query\":\"apple\",\"n\":2,\"summarize\":false}', name='get_latest_news'), type='function')]))], created=1712601683, model='gpt-3.5-turbo-0125', object='chat.completion', system_fingerprint='fp_b28b39ffa8', usage=CompletionUsage(completion_tokens=25, prompt_tokens=207, total_tokens=232))",
+          },
+          result:
+            "1. (Gizmodo.com) Goodbye Apple Car, Hello Apple Home Robots - Fresh off dumping its electric vehicles project, Apple appears to be pivoting to something fairly different: household robots. Engineers at the iPhone company have been working on some sort of \u201cpersonal robotics\u201d device that can cohabitate with you and follow\u2026\n2. (Yahoo Entertainment) AI has spoken: the Apple Car would have been adorable - After a decade of rumors and speculation, the Apple Car is dead\r\n. Last week, Bloomberg reported that the multibillion-dollar project had finally been scrapped. Reports about the electric vehicle never quite seemed real\r\n, but now we have many new details abo\u2026",
+          task_id: "059a5ab6-3944-4628-82a6-11843befd4ee",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_openai_assistant_response",
+          start_time: 1712601682.700403,
+          end_time: 1712601683.754349,
+          args: {
+            messages: [
+              {
+                role: "user",
+                content: "get me 2 news artciels on apple",
+              },
+            ],
+          },
+          result:
+            "1. (Gizmodo.com) Goodbye Apple Car, Hello Apple Home Robots - Fresh off dumping its electric vehicles project, Apple appears to be pivoting to something fairly different: household robots. Engineers at the iPhone company have been working on some sort of \u201cpersonal robotics\u201d device that can cohabitate with you and follow\u2026\n2. (Yahoo Entertainment) AI has spoken: the Apple Car would have been adorable - After a decade of rumors and speculation, the Apple Car is dead\r\n. Last week, Bloomberg reported that the multibillion-dollar project had finally been scrapped. Reports about the electric vehicle never quite seemed real\r\n, but now we have many new details abo\u2026",
+          task_id: "059a5ab6-3944-4628-82a6-11843befd4ee",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: 1712601686.035598,
+          end_time: 1712601687.091219,
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.",
+              },
+              {
+                role: "user",
+                content: "summarize 2 news articles on apple",
+              },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "get_last_n_arxiv_articles",
+                  description:
+                    "Retrieves the last N articles from arXiv for a given query.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description:
+                          "The search query to find articles in arXiv.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "n"],
+                  },
+                },
+              },
+              {
+                type: "function",
+                function: {
+                  name: "get_latest_news",
+                  description:
+                    "Retrieves the latest news articles based on a query",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description: "The search query to find news articles.",
+                      },
+                      summarize: {
+                        type: "boolean",
+                        description:
+                          "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of news articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "summarize", "n"],
+                  },
+                },
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BoDmqtLgWayOxzHL4fqD2gddwrtt",
+            choices: [
+              {
+                finish_reason: "tool_calls",
+                index: 0,
+                logprobs: null,
+                message: {
+                  content: null,
+                  role: "assistant",
+                  function_call: null,
+                  tool_calls: [
+                    {
+                      id: "call_hPoqwMgxbHqeDkGmBrmJB4MC",
+                      function: {
+                        arguments: '{"query":"apple","n":2,"summarize":true}',
+                        name: "get_latest_news",
+                      },
+                      type: "function",
+                    },
+                  ],
+                },
+              },
+            ],
+            created: 1712601686,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 25,
+              prompt_tokens: 206,
+              total_tokens: 231,
+            },
+          },
+          task_id: "b101f07e-0dd1-40d7-bdc6-a3ead4ca0919",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: 1712601687.23005,
+          end_time: 1712601688.67663,
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are an expert news summarizer. You cover the right topics for just the right time and give succint summaries of the news that the user provides. Give free form sentences no points.",
+              },
+              {
+                role: "user",
+                content:
+                  "1. (Gizmodo.com) Goodbye Apple Car, Hello Apple Home Robots - Fresh off dumping its electric vehicles project, Apple appears to be pivoting to something fairly different: household robots. Engineers at the iPhone company have been working on some sort of \u201cpersonal robotics\u201d device that can cohabitate with you and follow\u2026\n2. (Yahoo Entertainment) AI has spoken: the Apple Car would have been adorable - After a decade of rumors and speculation, the Apple Car is dead\r\n. Last week, Bloomberg reported that the multibillion-dollar project had finally been scrapped. Reports about the electric vehicle never quite seemed real\r\n, but now we have many new details abo\u2026\n",
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BoDnVTnsB3f3d5gQ5OYntUuF5Bgn",
+            choices: [
+              {
+                finish_reason: "stop",
+                index: 0,
+                logprobs: null,
+                message: {
+                  content:
+                    "Apple has decided to shift focus from the Apple Car project to developing household robots for personal use. The move comes after the cancellation of the rumored Apple Car project, which was reported to be a multibillion-dollar endeavor that has now been officially called off. The Apple Car was highly anticipated by fans, with the potential for it to be an adorable creation according to insights from AI technology.",
+                  role: "assistant",
+                  function_call: null,
+                  tool_calls: null,
+                },
+              },
+            ],
+            created: 1712601687,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 77,
+              prompt_tokens: 187,
+              total_tokens: 264,
+            },
+          },
+          task_id: "b101f07e-0dd1-40d7-bdc6-a3ead4ca0919",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_latest_news",
+          start_time: 1712601687.096092,
+          end_time: 1712601688.685368,
+          args: {
+            args: {
+              query: "apple",
+              n: 2,
+              summarize: true,
+            },
+          },
+          result:
+            "Apple has decided to shift focus from the Apple Car project to developing household robots for personal use. The move comes after the cancellation of the rumored Apple Car project, which was reported to be a multibillion-dollar endeavor that has now been officially called off. The Apple Car was highly anticipated by fans, with the potential for it to be an adorable creation according to insights from AI technology.",
+          task_id: "b101f07e-0dd1-40d7-bdc6-a3ead4ca0919",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "run_tool",
+          start_time: 1712601687.095813,
+          end_time: 1712601688.685394,
+          args: {
+            response:
+              "ChatCompletion(id='chatcmpl-9BoDmqtLgWayOxzHL4fqD2gddwrtt', choices=[Choice(finish_reason='tool_calls', index=0, logprobs=None, message=ChatCompletionMessage(content=None, role='assistant', function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_hPoqwMgxbHqeDkGmBrmJB4MC', function=Function(arguments='{\"query\":\"apple\",\"n\":2,\"summarize\":true}', name='get_latest_news'), type='function')]))], created=1712601686, model='gpt-3.5-turbo-0125', object='chat.completion', system_fingerprint='fp_b28b39ffa8', usage=CompletionUsage(completion_tokens=25, prompt_tokens=206, total_tokens=231))",
+          },
+          result:
+            "Apple has decided to shift focus from the Apple Car project to developing household robots for personal use. The move comes after the cancellation of the rumored Apple Car project, which was reported to be a multibillion-dollar endeavor that has now been officially called off. The Apple Car was highly anticipated by fans, with the potential for it to be an adorable creation according to insights from AI technology.",
+          task_id: "b101f07e-0dd1-40d7-bdc6-a3ead4ca0919",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_openai_assistant_response",
+          start_time: 1712601686.034711,
+          end_time: 1712601688.685403,
+          args: {
+            messages: [
+              {
+                role: "user",
+                content: "summarize 2 news articles on apple",
+              },
+            ],
+          },
+          result:
+            "Apple has decided to shift focus from the Apple Car project to developing household robots for personal use. The move comes after the cancellation of the rumored Apple Car project, which was reported to be a multibillion-dollar endeavor that has now been officially called off. The Apple Car was highly anticipated by fans, with the potential for it to be an adorable creation according to insights from AI technology.",
+          task_id: "b101f07e-0dd1-40d7-bdc6-a3ead4ca0919",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: 1712601693.223606,
+          end_time: 1712601693.832366,
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.",
+              },
+              {
+                role: "user",
+                content: "hi",
+              },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "get_last_n_arxiv_articles",
+                  description:
+                    "Retrieves the last N articles from arXiv for a given query.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description:
+                          "The search query to find articles in arXiv.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "n"],
+                  },
+                },
+              },
+              {
+                type: "function",
+                function: {
+                  name: "get_latest_news",
+                  description:
+                    "Retrieves the latest news articles based on a query",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description: "The search query to find news articles.",
+                      },
+                      summarize: {
+                        type: "boolean",
+                        description:
+                          "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of news articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "summarize", "n"],
+                  },
+                },
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BoDtrUAcQAvWxarQfQiOCeGKiUPz",
+            choices: [
+              {
+                finish_reason: "stop",
+                index: 0,
+                logprobs: null,
+                message: {
+                  content: "Hello! How can I assist you today?",
+                  role: "assistant",
+                  function_call: null,
+                  tool_calls: null,
+                },
+              },
+            ],
+            created: 1712601693,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 10,
+              prompt_tokens: 198,
+              total_tokens: 208,
+            },
+          },
+          task_id: "524c0e63-1d82-4fe7-a2a8-8e90827f9f2b",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_openai_assistant_response",
+          start_time: 1712601693.223351,
+          end_time: 1712601693.834759,
+          args: {
+            messages: [
+              {
+                role: "user",
+                content: "hi",
+              },
+            ],
+          },
+          result: "Hello! How can I assist you today?",
+          task_id: "524c0e63-1d82-4fe7-a2a8-8e90827f9f2b",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "openai.chat.completions.create",
+          start_time: 1712601702.211738,
+          end_time: 1712601703.119241,
+          args: {
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous.",
+              },
+              {
+                role: "user",
+                content: "get me 2 papers on ai agents",
+              },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "get_last_n_arxiv_articles",
+                  description:
+                    "Retrieves the last N articles from arXiv for a given query.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description:
+                          "The search query to find articles in arXiv.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "n"],
+                  },
+                },
+              },
+              {
+                type: "function",
+                function: {
+                  name: "get_latest_news",
+                  description:
+                    "Retrieves the latest news articles based on a query",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      query: {
+                        type: "string",
+                        description: "The search query to find news articles.",
+                      },
+                      summarize: {
+                        type: "boolean",
+                        description:
+                          "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize.",
+                      },
+                      n: {
+                        type: "integer",
+                        description: "The number of news articles to retrieve.",
+                      },
+                    },
+                    required: ["query", "summarize", "n"],
+                  },
+                },
+              },
+            ],
+          },
+          result: {
+            id: "chatcmpl-9BoE2eb7kImFTqwJ9vDly4gKba4Em",
+            choices: [
+              {
+                finish_reason: "tool_calls",
+                index: 0,
+                logprobs: null,
+                message: {
+                  content: null,
+                  role: "assistant",
+                  function_call: null,
+                  tool_calls: [
+                    {
+                      id: "call_48kBBMTSvdRrCSigMZBCgjaU",
+                      function: {
+                        arguments: '{"query":"ai agents","n":2}',
+                        name: "get_last_n_arxiv_articles",
+                      },
+                      type: "function",
+                    },
+                  ],
+                },
+              },
+            ],
+            created: 1712601702,
+            model: "gpt-3.5-turbo-0125",
+            object: "chat.completion",
+            system_fingerprint: "fp_b28b39ffa8",
+            usage: {
+              completion_tokens: 23,
+              prompt_tokens: 205,
+              total_tokens: 228,
+            },
+          },
+          task_id: "16d23e1a-fca1-46bf-baf3-1b9cdaa43909",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_last_n_arxiv_articles",
+          start_time: 1712601703.136374,
+          end_time: 1712601703.514944,
+          args: {
+            args: {
+              query: "ai agents",
+              n: 2,
+            },
+          },
+          result:
+            "1. 04-05-24 - Sigma: Siamese Mamba Network for Multi-Modal Semantic Segmentation\n2. 04-05-24 - Watermark-based Detection and Attribution of AI-Generated Content",
+          task_id: "16d23e1a-fca1-46bf-baf3-1b9cdaa43909",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "run_tool",
+          start_time: 1712601703.13565,
+          end_time: 1712601703.514959,
+          args: {
+            response:
+              "ChatCompletion(id='chatcmpl-9BoE2eb7kImFTqwJ9vDly4gKba4Em', choices=[Choice(finish_reason='tool_calls', index=0, logprobs=None, message=ChatCompletionMessage(content=None, role='assistant', function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_48kBBMTSvdRrCSigMZBCgjaU', function=Function(arguments='{\"query\":\"ai agents\",\"n\":2}', name='get_last_n_arxiv_articles'), type='function')]))], created=1712601702, model='gpt-3.5-turbo-0125', object='chat.completion', system_fingerprint='fp_b28b39ffa8', usage=CompletionUsage(completion_tokens=23, prompt_tokens=205, total_tokens=228))",
+          },
+          result:
+            "1. 04-05-24 - Sigma: Siamese Mamba Network for Multi-Modal Semantic Segmentation\n2. 04-05-24 - Watermark-based Detection and Attribution of AI-Generated Content",
+          task_id: "16d23e1a-fca1-46bf-baf3-1b9cdaa43909",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+        {
+          function_name: "get_openai_assistant_response",
+          start_time: 1712601702.211687,
+          end_time: 1712601703.514969,
+          args: {
+            messages: [
+              {
+                role: "user",
+                content: "get me 2 papers on ai agents",
+              },
+            ],
+          },
+          result:
+            "1. 04-05-24 - Sigma: Siamese Mamba Network for Multi-Modal Semantic Segmentation\n2. 04-05-24 - Watermark-based Detection and Attribution of AI-Generated Content",
+          task_id: "16d23e1a-fca1-46bf-baf3-1b9cdaa43909",
+          agent_id: "90f6be3f-7d60-4187-b2c8-846738cfb167",
+        },
+      ];
+      // DATA ENDS HERE
+
+      const viewer = document.getElementById("json-viewer");
+      data.forEach((entry, index) => {
+        const section = createCollapsibleSection(
+          "Log Entry " + (index + 1),
+          entry,
+          true
+        );
+        viewer.appendChild(section);
+      });
+    </script>
+  </body>
+</html>

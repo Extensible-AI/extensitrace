@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Flame Graph Viewer</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+      svg {
+        font-family: Arial, sans-serif;
+        width: 100%;
+      }
+      .node {
+        stroke: #fff;
+      }
+      .node:hover {
+        stroke: #000;
+      }
+      .node-text {
+        pointer-events: none;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Flame Graph Viewer</h1>
+    <div id="flameGraphContainer"></div>
+    <div
+      id="tooltip"
+      style="
+        position: absolute;
+        display: none;
+        padding: 10px;
+        background: #fff;
+        border: 1px solid #ccc;
+        pointer-events: none;
+        z-index: 10;
+      "
+    ></div>
+
+    <script>
+      // DATA STARTS HERE
+const data = [{"function_name": "openai.chat.completions.create", "start_time": 1712601705.339235, "end_time": 1712601706.345835, "args": {"model": "gpt-3.5-turbo", "messages": [{"role": "system", "content": "You are a helpful assistant. Keep your answers as short as possible, don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous."}, {"role": "user", "content": "hi"}], "tools": [{"type": "function", "function": {"name": "get_last_n_arxiv_articles", "description": "Retrieves the last N articles from arXiv for a given query.", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "The search query to find articles in arXiv."}, "n": {"type": "integer", "description": "The number of articles to retrieve."}}, "required": ["query", "n"]}}}, {"type": "function", "function": {"name": "get_latest_news", "description": "Retrieves the latest news articles based on a query", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "The search query to find news articles."}, "summarize": {"type": "boolean", "description": "Instead of returning articles, summarizes all of them. Only set this to True if the user has explicitly mentioned to summarize."}, "n": {"type": "integer", "description": "The number of news articles to retrieve."}}, "required": ["query", "summarize", "n"]}}}]}, "result": {"id": "chatcmpl-9BoE58uWZtnA3QRm8KeWx1wTGrMEC", "choices": [{"finish_reason": "stop", "index": 0, "logprobs": 'None', "message": {"content": "Hello! How can I assist you today?", "role": "assistant", "function_call": 'None', "tool_calls": 'None'}}], "created": 1712601705, "model": "gpt-3.5-turbo-0125", "object": "chat.completion", "system_fingerprint": "fp_b28b39ffa8", "usage": {"completion_tokens": 10, "prompt_tokens": 198, "total_tokens": 208}}, "task_id": "e243240d-c9dc-4873-8420-7f08bffbdf8f", "agent_id": "90f6be3f-7d60-4187-b2c8-846738cfb167"}, {"function_name": "get_openai_assistant_response", "start_time": 1712601705.339008, "end_time": 1712601706.357007, "args": {"messages": [{"role": "user", "content": "hi"}]}, "result": "Hello! How can I assist you today?", "task_id": "e243240d-c9dc-4873-8420-7f08bffbdf8f", "agent_id": "90f6be3f-7d60-4187-b2c8-846738cfb167"}];
+      // DATA ENDS HERE
+
+      // Function to create a flame graph for each task
+      function createFlameGraph(taskData, container) {
+        // Set dimensions and margins for the graph
+        const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+        const width = 900 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+
+        // Create an SVG for the flame graph
+        const svg = container
+          .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Scales for the x and y axes
+        const x = d3.scaleLinear().range([0, width]);
+        const y = d3.scaleBand().range([0, height]).padding(0.1);
+
+        // Set the domains for the scales
+        x.domain([0, taskData.duration]);
+        y.domain(taskData.children.map((d) => d.name));
+
+        // Add the rectangles for the flame graph
+        svg
+          .selectAll("rect")
+          .data(taskData.children)
+          .enter()
+          .append("rect")
+          .attr("x", (d) => x(d.start))
+          .attr("width", (d) => x(d.end - d.start))
+          .attr("y", (d) => y(d.name))
+          .attr("height", y.bandwidth())
+          .attr("fill", "steelblue")
+          .attr("class", "node")
+          .attr(
+            "title",
+            (d) =>
+              `${d.name}\nDuration: ${(d.end - d.start).toFixed(2)} seconds`
+          );
+
+        // Add the text labels
+        svg
+          .selectAll("text")
+          .data(taskData.children)
+          .enter()
+          .append("text")
+          .attr("x", (d) => x(d.start) + 3)
+          .attr("y", (d) => y(d.name) + y.bandwidth() / 2)
+          .attr("dy", "0.35em")
+          .attr("class", "node-text")
+          .text((d) => d.name);
+      }
+
+      // Function to build the hierarchy of tasks
+      function buildHierarchy(logs) {
+        logs.sort(function (a, b) {
+          return parseFloat(a.start_time) - parseFloat(b.start_time);
+        });
+
+        const tasks = {};
+
+        // Group logs by task_id
+        logs.forEach((log) => {
+          const taskId = log.task_id;
+          if (!tasks[taskId]) {
+            tasks[taskId] = {
+              id: taskId,
+              children: [],
+              start: Infinity,
+              end: -Infinity,
+            };
+          }
+
+          const task = tasks[taskId];
+          task.children.push({
+            name: log.function_name,
+            start: log.start_time,
+            end: log.end_time,
+          });
+
+          task.start = Math.min(task.start, log.start_time);
+          task.end = Math.max(task.end, log.end_time);
+        });
+
+        // Calculate the duration and normalize the start and end times for each task
+        Object.values(tasks).forEach((task) => {
+          task.duration = task.end - task.start;
+          task.children.forEach((child) => {
+            child.start -= task.start;
+            child.end -= task.start;
+          });
+        });
+
+        return tasks;
+      }
+
+      // Parse the log data into a hierarchical structure
+      const tasks = buildHierarchy(logs);
+
+      // Select the container for the flame graphs
+      const container = d3.select("#flameGraphContainer");
+
+      // Create a flame graph for each task
+      Object.values(tasks).forEach((taskData) => {
+        container.append("h2").text(`Task ID: ${taskData.id}`);
+        createFlameGraph(taskData, container);
+      });
+    </script>
+  </body>
+</html>
