@@ -1,4 +1,5 @@
 import json
+from openai.types.chat import ChatCompletion 
 
 def replace_data_in_viewer(file_name, content):
     start_index = -1
