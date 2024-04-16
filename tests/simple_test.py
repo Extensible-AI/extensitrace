@@ -1,6 +1,6 @@
 import json
-# from extensilogger import ExtensiLogger
-from extensilogger.extensilogger import ExtensiLogger
+from extensilogger import ExtensiLogger
+# from extensilogger.extensilogger import ExtensiLogger
 
 # Clear the event_log.json file
 with open('event_log.json', 'w') as file:
