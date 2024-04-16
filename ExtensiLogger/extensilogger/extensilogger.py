@@ -7,13 +7,13 @@ from queue import Queue
 import threading
 import uuid
 import openai
-from src.log_utils import update_log_viewer
-from src.singleton import Singleton
+from .log_utils import update_log_viewer
+from .singleton import Singleton
 
 
 thread_local_storage = threading.local()
 
-class AgentLogger(metaclass=Singleton):
+class ExtensiLogger(metaclass=Singleton):
     def __init__(self, client=None, log_file='./event_log.json'):
         self.client = client or openai
         self.log_file = log_file
@@ -193,4 +193,4 @@ class AgentLogger(metaclass=Singleton):
         except Exception as e:
             print(f'Error writing to file: {e}')
 
-        update_log_viewer(combined_data)
+        # update_log_viewer(combined_data)
