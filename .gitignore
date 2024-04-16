@@ -4,4 +4,10 @@ __pycache__
 .venv
 .env
 event_log.json
+*.egg-info/
+extensilogger/extensilogger.egg-info
+extensilogger/extensilogger.egg-info/
+build/
 venv/
+
+ExtensiLogger/extensilogger.egg-info/PKG-INFO
