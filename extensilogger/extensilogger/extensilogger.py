@@ -7,18 +7,20 @@ from queue import Queue
 import threading
 import uuid
 import openai
+from .connectors.connector import Connector
 from .singleton import Singleton
 
 
 thread_local_storage = threading.local()
 
-class ExtensiLogger(metaclass=Singleton):
-    def __init__(self, client=None, log_file='./event_log.json'):
+class AgentLogger(metaclass=Singleton):
+    def __init__(self, client=None, log_file='./event_log.json',  connector:Connector=None):
         self.client = client or openai
         self.log_file = log_file
         self.lock = threading.Lock()
         self.agent_id = str(uuid.uuid4())
-        self.data_store = dict() 
+        self.data_store = dict()
+        self.data_connector = connector
 
     def log(self, track=False):
         def decorator(func):
@@ -201,4 +203,7 @@ class ExtensiLogger(metaclass=Singleton):
         except Exception as e:
             print(f'Error writing to file: {e}')
 
-        # update_log_viewer(combined_data)
+        if self.data_connector:
+            self.data_connector.flush(combined_data)
+        else:
+            update_log_viewer(combined_data)

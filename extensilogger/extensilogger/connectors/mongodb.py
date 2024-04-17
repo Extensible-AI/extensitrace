@@ -1,0 +1,43 @@
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, OperationFailure
+
+from .connector import Connector
+
+class MongoConnector(Connector):
+    def __init__(self, connection_string: str, db_name: str, collection_name: str):
+        """
+        Initialize the MongoDB Connector using a connection string.
+        :param connection_string: MongoDB connection URI.
+        :param db_name: Name of the database.
+        :param collection_name: Name of the collection.
+        """
+        self.db_name = db_name
+        self.collection_name = collection_name
+        self.client = None
+        try:
+            # Establish a connection to the MongoDB server using the connection string
+            self.client = MongoClient(connection_string, tlsAllowInvalidCertificates=True)
+            # Quick server availability check
+            self.client.admin.command('ping')
+
+            print('successful')
+        except ConnectionFailure as e:
+            print("Failed to connect to MongoDB:", e)
+        except OperationFailure as e:
+            print("Authentication failed:", e)
+
+    def flush(self, json_data):
+        """
+        Insert a list of JSON documents into the specified MongoDB collection.
+        :param json_data: A JSON document or dict to be inserted.
+        """
+        if self.client:
+            try:
+                db = self.client[self.db_name]
+                collection = db[self.collection_name]
+                collection.insert_many(json_data)
+                print("Data inserted successfully.")
+            except Exception as e:
+                print("An error occurred while inserting data:", e)
+        else:
+            print("Database connection is not established.")
