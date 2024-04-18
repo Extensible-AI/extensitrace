@@ -10,6 +10,7 @@ logger = ExtensiLogger()
 
 @logger.log(track=True)
 def test():
+    logger.add_user_id('123')
     test2()
     pass
 
@@ -33,4 +34,5 @@ if __name__ == '__main__':
         print(f"Total unique task_ids: {len(set(task_ids))}")
         assert len(log_data) == 3, "The length of event_log.json should be 3"
         assert len(set(task_ids)) == 2, "There should be 3 unique task_ids"
+        
         print('Simple test passed!')

@@ -6,7 +6,7 @@ with open('requirements.txt') as f:
 setup(
 
     name='extensilogger',  # Make sure this is a unique name for PyPI if you plan to publish.
-    version='0.1',  
+    version='0.1.2',  
     packages=find_packages(), # This automatically finds packages in your project.
     install_requires=required,  # List of dependencies read from 'requirements.txt'.
     author='Parth Sareen, Omkaar Kamath',  # Update with the correct author's name.
