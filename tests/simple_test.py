@@ -33,6 +33,6 @@ if __name__ == '__main__':
         print(f"Total log entries: {len(log_data)}")
         print(f"Total unique task_ids: {len(set(task_ids))}")
         assert len(log_data) == 3, "The length of event_log.json should be 3"
-        assert len(set(task_ids)) == 2, "There should be 3 unique task_ids"
-        
+        assert len(set(task_ids)) == 2, "There should be 2 unique task_ids"
+
         print('Simple test passed!')

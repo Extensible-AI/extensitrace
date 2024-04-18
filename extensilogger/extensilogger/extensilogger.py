@@ -174,7 +174,6 @@ class ExtensiLogger(metaclass=Singleton):
             else:
                 self.data_store[task_id]['completion_ids'].add(log_entry['result']['id'])
 
-        # log_entry['call_stack'] = " -> ".join(getattr(thread_local_storage, 'call_stack', []))
         # TODO: change the lock if needed as currently there is a lock on top level
         self.data_store[task_id]['queue'].put(log_entry)
         if len(self.data_store[task_id]['call_stack']) == 0:
