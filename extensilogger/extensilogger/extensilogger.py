@@ -7,7 +7,6 @@ from queue import Queue
 import threading
 import uuid
 import openai
-from .log_utils import update_log_viewer
 from .singleton import Singleton
 
 
@@ -34,6 +33,7 @@ class ExtensiLogger(metaclass=Singleton):
                         self.data_store[thread_local_storage.task_id]['call_stack'] = []
                         self.data_store[thread_local_storage.task_id]['patched'] = False 
                         self.data_store[thread_local_storage.task_id]['completion_ids'] = set() 
+                        self.data_store[thread_local_storage.task_id]['user_id'] = None 
 
                 with self.lock:
                     self.data_store[thread_local_storage.task_id]['call_stack'].append(func.__name__)
@@ -50,6 +50,7 @@ class ExtensiLogger(metaclass=Singleton):
 
                     self.__log_event(
                         log_id=str(uuid.uuid4()),  # Added UUID for each log
+                        user_id=self.data_store[thread_local_storage.task_id]['user_id'],
                         function_name=func.__name__,
                         start_time=start_time,
                         end_time=end_time,
@@ -63,6 +64,13 @@ class ExtensiLogger(metaclass=Singleton):
                 return result
             return wrapper
         return decorator
+
+
+    def add_user_id(self, user_id):
+        with self.lock:
+            self.data_store[thread_local_storage.task_id]['user_id'] = user_id
+        return user_id
+
 
     # TODO: Known bug is mock create getting called multiple times and throws extra logs
     def mock_create(self, original_create, *args, **kwargs):
@@ -84,6 +92,7 @@ class ExtensiLogger(metaclass=Singleton):
 
             with self.lock:
                 self.__log_event(
+                    user_id=self.data_store[thread_local_storage.task_id]['user_id'],
                     log_id=str(uuid.uuid4()),
                     function_name='openai.chat.completions.create',
                     start_time=chat_call_start_time,
@@ -165,7 +174,6 @@ class ExtensiLogger(metaclass=Singleton):
             else:
                 self.data_store[task_id]['completion_ids'].add(log_entry['result']['id'])
 
-        log_entry['call_stack'] = " -> ".join(getattr(thread_local_storage, 'call_stack', []))
         # TODO: change the lock if needed as currently there is a lock on top level
         self.data_store[task_id]['queue'].put(log_entry)
         if len(self.data_store[task_id]['call_stack']) == 0:
