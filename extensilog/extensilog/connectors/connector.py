@@ -1,15 +1,17 @@
+from abc import ABC, abstractmethod
 from typing import List
 
 
-class Connector:
+class Connector(ABC):
     def __init__(self):
         """
         Initialize the Connector.
         """
         pass
     
+    @abstractmethod
     def flush(self, logs: List):
         """
         This method should be overridden by subclasses.
         """
-        raise NotImplementedError("The flush method must be implemented by subclasses.")
+        pass

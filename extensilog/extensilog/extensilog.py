@@ -7,20 +7,18 @@ from queue import Queue
 import threading
 import uuid
 import openai
-from .connectors.connector import Connector
 from .singleton import Singleton
 
 
 thread_local_storage = threading.local()
 
-class AgentLogger(metaclass=Singleton):
-    def __init__(self, client=None, log_file='./event_log.json',  connector:Connector=None):
+class ExtensiLog(metaclass=Singleton):
+    def __init__(self, client=None, log_file='./event_log.json'):
         self.client = client or openai
         self.log_file = log_file
         self.lock = threading.Lock()
         self.agent_id = str(uuid.uuid4())
-        self.data_store = dict()
-        self.data_connector = connector
+        self.data_store = dict() 
 
     def log(self, track=False):
         def decorator(func):
@@ -79,10 +77,6 @@ class AgentLogger(metaclass=Singleton):
         """
         A mock method to wrap around the original create method, logging additional information.
         """
-        print('Mock create called by')
-        with self.lock:
-            print(self.data_store[thread_local_storage.task_id]['call_stack'])
-
         with self.lock:
             patched = self.data_store[thread_local_storage.task_id]['patched']
 
@@ -122,8 +116,6 @@ class AgentLogger(metaclass=Singleton):
             patched = self.data_store[thread_local_storage.task_id]['patched']
         
         if not patched: 
-            print('Patching!!')
-            # thread_local_storage.mock_applied = True
             task_id = thread_local_storage.task_id
             with self.lock:
                 original_create = self.data_store[task_id]['client'].chat.completions.create
@@ -148,7 +140,6 @@ class AgentLogger(metaclass=Singleton):
                         self.data_store[task_id]['client'].chat.completions.create = original_create
                         self.data_store[thread_local_storage.task_id]['patched'] = False
         else:
-            print('Already patched!!')
             yield  # If already patched, just yield without re-patching
 
 
@@ -176,6 +167,7 @@ class AgentLogger(metaclass=Singleton):
             else:
                 self.data_store[task_id]['completion_ids'].add(log_entry['result']['id'])
 
+        # log_entry['call_stack'] = " -> ".join(getattr(thread_local_storage, 'call_stack', []))
         # TODO: change the lock if needed as currently there is a lock on top level
         self.data_store[task_id]['queue'].put(log_entry)
         if len(self.data_store[task_id]['call_stack']) == 0:
@@ -202,8 +194,3 @@ class AgentLogger(metaclass=Singleton):
                 json.dump(combined_data, f, indent=2)
         except Exception as e:
             print(f'Error writing to file: {e}')
-
-        if self.data_connector:
-            self.data_connector.flush(combined_data)
-        else:
-            update_log_viewer(combined_data)

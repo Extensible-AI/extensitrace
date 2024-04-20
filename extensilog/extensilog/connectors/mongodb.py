@@ -4,7 +4,7 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from .connector import Connector
 
 class MongoConnector(Connector):
-    def __init__(self, connection_string: str, db_name: str, collection_name: str):
+    def __init__(self, connection_string: str, db_name: str, collection_name: str, client: MongoClient=None):
         """
         Initialize the MongoDB Connector using a connection string.
         :param connection_string: MongoDB connection URI.
@@ -14,12 +14,10 @@ class MongoConnector(Connector):
         self.db_name = db_name
         self.collection_name = collection_name
         self.client = None
+        self.client = client or MongoClient(connection_string, tlsAllowInvalidCertificates=True)
         try:
-            # Establish a connection to the MongoDB server using the connection string
-            self.client = MongoClient(connection_string, tlsAllowInvalidCertificates=True)
-            # Quick server availability check
+            # Verify server connectivity
             self.client.admin.command('ping')
-
             print('successful')
         except ConnectionFailure as e:
             print("Failed to connect to MongoDB:", e)
@@ -37,6 +35,7 @@ class MongoConnector(Connector):
                 collection = db[self.collection_name]
                 collection.insert_many(json_data)
                 print("Data inserted successfully.")
+                return True
             except Exception as e:
                 print("An error occurred while inserting data:", e)
         else:

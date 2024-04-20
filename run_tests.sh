@@ -1,4 +1,4 @@
 python3 -m venv venv
 source venv/bin/activate
-pip install ./extensilogger
+pip install ./extensilog
 python tests/simple_test.py
