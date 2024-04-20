@@ -1,2 +1,2 @@
-from .extensilog import ExtensiLog
-from .connectors.mongodb import MongoConnector 
+from .extensilog import *
+from .connectors import * 
