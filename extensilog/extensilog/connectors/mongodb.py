@@ -13,7 +13,6 @@ class MongoConnector(Connector):
         """
         self.db_name = db_name
         self.collection_name = collection_name
-        self.client = None
         self.client = client or MongoClient(connection_string, tlsAllowInvalidCertificates=True)
         try:
             # Verify server connectivity
@@ -24,19 +23,17 @@ class MongoConnector(Connector):
         except OperationFailure as e:
             print("Authentication failed:", e)
 
+
     def flush(self, json_data):
         """
         Insert a list of JSON documents into the specified MongoDB collection.
         :param json_data: A JSON document or dict to be inserted.
         """
-        if self.client:
-            try:
-                db = self.client[self.db_name]
-                collection = db[self.collection_name]
-                collection.insert_many(json_data)
-                print("Data inserted successfully.")
-                return True
-            except Exception as e:
-                print("An error occurred while inserting data:", e)
-        else:
-            print("Database connection is not established.")
+        try:
+            db = self.client[self.db_name]
+            collection = db[self.collection_name]
+            collection.insert_many(json_data)
+            print("Data inserted successfully.")
+            return True
+        except Exception as e:
+            print("An error occurred while inserting data:", e)
