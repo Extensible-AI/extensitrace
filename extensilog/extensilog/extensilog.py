@@ -20,6 +20,7 @@ class ExtensiLog(metaclass=Singleton):
         self.agent_id = str(uuid.uuid4())
         self.data_store = dict() 
 
+
     def log(self, track=False):
         def decorator(func):
             @functools.wraps(func)
@@ -34,9 +35,12 @@ class ExtensiLog(metaclass=Singleton):
                         self.data_store[thread_local_storage.task_id]['patched'] = False 
                         self.data_store[thread_local_storage.task_id]['completion_ids'] = set() 
                         self.data_store[thread_local_storage.task_id]['user_id'] = None 
+                        self.data_store[thread_local_storage.task_id]['metadata'] = None 
 
                 with self.lock:
-                    self.data_store[thread_local_storage.task_id]['call_stack'].append(func.__name__)
+                    self.data_store[thread_local_storage.task_id]['call_stack'].append((func.__name__, str(uuid.uuid4())))
+
+
                 func_args = inspect.signature(func).bind(*args, **kwargs).arguments
                 func_args_dict = self.__serialize_arguments(func_args)
                 start_time = datetime.now().timestamp()
@@ -46,10 +50,10 @@ class ExtensiLog(metaclass=Singleton):
 
                 end_time = datetime.now().timestamp()
                 with self.lock:
-                    self.data_store[thread_local_storage.task_id]['call_stack'].pop()
+                    log = self.data_store[thread_local_storage.task_id]['call_stack'].pop()
 
                     self.__log_event(
-                        log_id=str(uuid.uuid4()),  # Added UUID for each log
+                        log_id=log[1],
                         user_id=self.data_store[thread_local_storage.task_id]['user_id'],
                         function_name=func.__name__,
                         start_time=start_time,
@@ -58,7 +62,8 @@ class ExtensiLog(metaclass=Singleton):
                         result=result,
                         task_id=thread_local_storage.task_id,
                         agent_id=self.agent_id,
-                        call_stack=" -> ".join(self.data_store[thread_local_storage.task_id]['call_stack'])
+                        parent_log_id=self.data_store[thread_local_storage.task_id]['call_stack'][-1][1] if self.data_store[thread_local_storage.task_id]['call_stack'] else None,
+                        metadata=self.data_store[thread_local_storage.task_id]['metadata']
                     )
 
                 return result
@@ -66,10 +71,17 @@ class ExtensiLog(metaclass=Singleton):
         return decorator
 
 
+    # TODO: Determine scope of these requests
     def add_user_id(self, user_id):
         with self.lock:
             self.data_store[thread_local_storage.task_id]['user_id'] = user_id
         return user_id
+
+    
+    def add_metadata(self, metadata):
+        with self.lock:
+            self.data_store[thread_local_storage.task_id]['metadata'] = metadata
+        return metadata
 
 
     # TODO: Known bug is mock create getting called multiple times and throws extra logs
@@ -83,7 +95,7 @@ class ExtensiLog(metaclass=Singleton):
         if not patched: 
             chat_args_dict = self.__serialize_arguments(kwargs)
             chat_call_start_time = datetime.now().timestamp()
-            result = original_create(*args, **kwargs)  # Call the original method directly
+            result = original_create(*args, **kwargs)  
             chat_call_end_time = datetime.now().timestamp()
 
             with self.lock:
@@ -97,7 +109,8 @@ class ExtensiLog(metaclass=Singleton):
                     result=result.model_dump(),
                     task_id=getattr(thread_local_storage, 'task_id', str(uuid.uuid4())),
                     agent_id=self.agent_id,
-                    call_stack=" -> ".join(self.data_store[thread_local_storage.task_id]['call_stack'])
+                    parent_log_id=self.data_store[thread_local_storage.task_id]['call_stack'][-1][1] if self.data_store[thread_local_storage.task_id]['call_stack'] else None,
+                    metadata=self.data_store[thread_local_storage.task_id]['metadata']
                 )
                 self.data_store[thread_local_storage.task_id]['patched'] = True
 
@@ -106,12 +119,12 @@ class ExtensiLog(metaclass=Singleton):
             # Directly call the original method if already patched
             return original_create(*args, **kwargs)
 
+
     @contextlib.contextmanager
     def __patched_create_method(self):
         """
         A context manager to temporarily patch the create method for logging purposes.
         """
-        # if not getattr(thread_local_storage, 'mock_applied', False):
         with self.lock:
             patched = self.data_store[thread_local_storage.task_id]['patched']
         
@@ -140,7 +153,7 @@ class ExtensiLog(metaclass=Singleton):
                         self.data_store[task_id]['client'].chat.completions.create = original_create
                         self.data_store[thread_local_storage.task_id]['patched'] = False
         else:
-            yield  # If already patched, just yield without re-patching
+            yield  # If already patched, yield without re-patching
 
 
     def __serialize_arguments(self, arguments):
@@ -167,8 +180,6 @@ class ExtensiLog(metaclass=Singleton):
             else:
                 self.data_store[task_id]['completion_ids'].add(log_entry['result']['id'])
 
-        # log_entry['call_stack'] = " -> ".join(getattr(thread_local_storage, 'call_stack', []))
-        # TODO: change the lock if needed as currently there is a lock on top level
         self.data_store[task_id]['queue'].put(log_entry)
         if len(self.data_store[task_id]['call_stack']) == 0:
             self.__flush_queue()
