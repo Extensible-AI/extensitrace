@@ -33,8 +33,8 @@ class ExtensiLog(metaclass=Singleton):
                         self.data_store[thread_local_storage.task_id]['client'] = self.client
                         self.data_store[thread_local_storage.task_id]['call_stack'] = []
                         self.data_store[thread_local_storage.task_id]['patched'] = False 
-                        self.data_store[thread_local_storage.task_id]['completion_ids'] = set() 
-                        self.data_store[thread_local_storage.task_id]['user_id'] = None 
+                        self.data_store[thread_local_storage.task_id]['completion_ids'] = set()
+                        self.data_store[thread_local_storage.task_id]['last_openai_call'] = {} 
                         self.data_store[thread_local_storage.task_id]['metadata'] = None 
 
                 with self.lock:
@@ -54,12 +54,11 @@ class ExtensiLog(metaclass=Singleton):
 
                     self.__log_event(
                         log_id=log[1],
-                        user_id=self.data_store[thread_local_storage.task_id]['user_id'],
                         function_name=func.__name__,
                         start_time=start_time,
                         end_time=end_time,
                         args=func_args_dict,
-                        result=result,
+                        result={'result_string':result} if isinstance(result, str) else result,
                         task_id=thread_local_storage.task_id,
                         agent_id=self.agent_id,
                         parent_log_id=self.data_store[thread_local_storage.task_id]['call_stack'][-1][1] if self.data_store[thread_local_storage.task_id]['call_stack'] else None,
@@ -70,17 +69,13 @@ class ExtensiLog(metaclass=Singleton):
             return wrapper
         return decorator
 
-
-    # TODO: Determine scope of these requests
-    def add_user_id(self, user_id):
-        with self.lock:
-            self.data_store[thread_local_storage.task_id]['user_id'] = user_id
-        return user_id
-
     
-    def add_metadata(self, metadata):
+    def add_metadata(self, metadata: dict):
         with self.lock:
-            self.data_store[thread_local_storage.task_id]['metadata'] = metadata
+            if self.data_store[thread_local_storage.task_id]['metadata']:
+                metadata = {**metadata, **self.data_store[thread_local_storage.task_id]['metadata']}
+            else:
+                self.data_store[thread_local_storage.task_id]['metadata'] = metadata
         return metadata
 
 
@@ -100,7 +95,6 @@ class ExtensiLog(metaclass=Singleton):
 
             with self.lock:
                 self.__log_event(
-                    user_id=self.data_store[thread_local_storage.task_id]['user_id'],
                     log_id=str(uuid.uuid4()),
                     function_name='openai.chat.completions.create',
                     start_time=chat_call_start_time,
@@ -175,10 +169,8 @@ class ExtensiLog(metaclass=Singleton):
         # Example modification to include full call stack in the log
         task_id = thread_local_storage.task_id
         if log_entry['function_name'] == 'openai.chat.completions.create':
-            if log_entry['result']['id'] in self.data_store[task_id]['completion_ids']:
-                return
-            else:
-                self.data_store[task_id]['completion_ids'].add(log_entry['result']['id'])
+            openai_id = log_entry['result']['id']
+            self.data_store[task_id]['last_openai_call'][openai_id] = log_entry['log_id'] 
 
         self.data_store[task_id]['queue'].put(log_entry)
         if len(self.data_store[task_id]['call_stack']) == 0:
@@ -197,6 +189,9 @@ class ExtensiLog(metaclass=Singleton):
         task_id = thread_local_storage.task_id
         while not self.data_store[task_id]['queue'].empty():
             log_entry = self.data_store[task_id]['queue'].get()
+            # Skip the loop if the log id is not the last openai call
+            if log_entry['function_name'] == 'openai.chat.completions.create' and self.data_store[task_id]['last_openai_call'][log_entry['result']['id']] != log_entry['log_id']:
+                continue
             new_data.append(log_entry)
 
         combined_data = existing_data + new_data

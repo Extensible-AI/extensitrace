@@ -35,11 +35,11 @@ def generate_mermaid(log_entries):
         for child_entry in children.get(current_id, []):
             queue.append(child_entry)
             # Create a connection in the Mermaid diagram
-            mermaid_diagram += f'    {current_id}("{current_entry["function_name"]}<br>({current_id})") --> {child_entry["log_id"]}("{child_entry["function_name"]}<br>({child_entry["log_id"]})")\n'
+            mermaid_diagram += f'    {current_id}("{current_entry["function_name"]}") --> {child_entry["log_id"]}("{child_entry["function_name"]}")\n'
 
         # Add root nodes to the Mermaid diagram
         if current_entry['parent_log_id'] is None:
-            mermaid_diagram += f'    {current_id}("{current_entry["function_name"]}<br>({current_id})")\n'
+            mermaid_diagram += f'    {current_id}("{current_entry["function_name"]}")\n'
 
     return mermaid_diagram
 

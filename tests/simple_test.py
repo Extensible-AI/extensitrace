@@ -6,11 +6,11 @@ from extensilog import ExtensiLog
 with open('event_log.json', 'w') as file:
     file.write('[]')
 
-logger = ExtensiLog()
+logger: ExtensiLog = ExtensiLog()
 
 @logger.log(track=True)
 def test():
-    logger.add_user_id('123')
+    logger.add_metadata({'key': 'value'})
     test2()
     pass
 
