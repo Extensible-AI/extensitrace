@@ -23,6 +23,13 @@ class MongoConnector(Connector):
         except OperationFailure as e:
             print("Authentication failed:", e)
 
+    def __del__(self):
+        """
+        Destructor to close the MongoDB connection when the object is deleted.
+        """
+        if self.client:
+            self.client.close()
+            print("MongoDB connection closed.")
 
     def flush(self, json_data):
         """
