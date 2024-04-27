@@ -65,7 +65,9 @@ class ExtensiLog(metaclass=Singleton):
                         task_id=thread_local_storage.task_id,
                         agent_id=self.agent_id,
                         parent_log_id=self.data_store[thread_local_storage.task_id]['call_stack'][-1][1] if self.data_store[thread_local_storage.task_id]['call_stack'] else None,
-                        metadata=self.data_store[thread_local_storage.task_id]['metadata']
+                        metadata=self.data_store[thread_local_storage.task_id]['metadata'],
+                        inferred_accuracy=None,
+                        accuracy_reasoning=None
                     )
 
                 return result
@@ -107,7 +109,9 @@ class ExtensiLog(metaclass=Singleton):
                     task_id=getattr(thread_local_storage, 'task_id', str(uuid.uuid4())),
                     agent_id=self.agent_id,
                     parent_log_id=self.data_store[thread_local_storage.task_id]['call_stack'][-1][1] if self.data_store[thread_local_storage.task_id]['call_stack'] else None,
-                    metadata=self.data_store[thread_local_storage.task_id]['metadata']
+                    metadata=self.data_store[thread_local_storage.task_id]['metadata'],
+                    inferred_accuracy=None,
+                    accuracy_reasoning=None
                 )
                 self.data_store[thread_local_storage.task_id]['patched'] = True
 
