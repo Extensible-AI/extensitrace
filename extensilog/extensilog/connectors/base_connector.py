@@ -14,4 +14,4 @@ class BaseConnector(ABC):
         """
         This method should be overridden by subclasses.
         """
-        pass
+        raise NotImplementedError("This method must be implemented by the subclass.")
