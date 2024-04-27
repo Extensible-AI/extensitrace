@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 
-class Connector(ABC):
+class BaseConnector(ABC):
     def __init__(self):
         """
         Initialize the Connector.

@@ -1,2 +1,2 @@
-from .mongodb import MongoConnector
-from .postgres import PostgresConnector
+from .mongo_connector import MongoConnector
+from .postgres_connector import PostgresConnector

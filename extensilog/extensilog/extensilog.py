@@ -7,18 +7,21 @@ from queue import Queue
 import threading
 import uuid
 import openai
+
+from .connectors.local_connector import LocalConnector
 from .singleton import Singleton
 
 
 thread_local_storage = threading.local()
 
 class ExtensiLog(metaclass=Singleton):
-    def __init__(self, client=None, log_file='./event_log.json'):
+    def __init__(self, client=None, log_file='./event_log.json', connector=None):
         self.client = client or openai
         self.log_file = log_file
         self.lock = threading.Lock()
         self.agent_id = str(uuid.uuid4())
         self.data_store = dict() 
+        self.connector = LocalConnector(log_file) if connector is None else connector 
 
 
     def log(self, track=False):
@@ -178,12 +181,7 @@ class ExtensiLog(metaclass=Singleton):
 
 
     def __flush_queue(self):
-        existing_data = []
-        try:
-            with open(self.log_file, 'r') as f:
-                existing_data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            print('Creating new log file or overwriting corrupted file.')
+
 
         new_data = []
         task_id = thread_local_storage.task_id
@@ -193,10 +191,5 @@ class ExtensiLog(metaclass=Singleton):
             if log_entry['function_name'] == 'openai.chat.completions.create' and self.data_store[task_id]['last_openai_call'][log_entry['result']['id']] != log_entry['log_id']:
                 continue
             new_data.append(log_entry)
-
-        combined_data = existing_data + new_data
-        try:
-            with open(self.log_file, 'w') as f:
-                json.dump(combined_data, f, indent=2)
-        except Exception as e:
-            print(f'Error writing to file: {e}')
+        
+        self.connector.flush(new_data)

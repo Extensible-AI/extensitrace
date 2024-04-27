@@ -1,9 +1,9 @@
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
 
-from .connector import Connector
+from .base_connector import BaseConnector
 
-class MongoConnector(Connector):
+class MongoConnector(BaseConnector):
     def __init__(self, connection_string: str, db_name: str, collection_name: str, client: MongoClient=None):
         """
         Initialize the MongoDB Connector using a connection string.
@@ -23,6 +23,13 @@ class MongoConnector(Connector):
         except OperationFailure as e:
             print("Authentication failed:", e)
 
+    def __del__(self):
+        """
+        Destructor to close the MongoDB connection when the object is deleted.
+        """
+        if self.client:
+            self.client.close()
+            print("MongoDB connection closed.")
 
     def flush(self, json_data):
         """
