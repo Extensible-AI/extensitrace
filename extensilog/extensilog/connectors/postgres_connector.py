@@ -2,9 +2,9 @@ import json
 import psycopg2
 from psycopg2 import OperationalError, DatabaseError
 
-from .connector import Connector
+from .base_connector import BaseConnector
 
-class PostgresConnector(Connector):
+class PostgresConnector(BaseConnector):
     def __init__(self, connection_string: str, table_name: str):
         """
         Initialize the PostgreSQL Connector using a connection string.
