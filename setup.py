@@ -12,6 +12,7 @@ setup(
     packages=find_packages(include=['extensilog', 'extensilog.*']),
     install_requires=required,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     license='Apache License 2.0',
     author='Parth Sareen, Omkaar Kamath',
     author_email='parth@extensible.dev, omkaar@extensible.dev',
