@@ -36,6 +36,11 @@ jobs:
           cd extensilog  
           python -m build
           
+      - name: Verify distribution files
+        run: |
+          ls dist/
+          if [ -z "$(ls -A dist/)" ]; then echo "No distribution files found in dist/"; exit 1; fi
+          
       - name: Publish the package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
