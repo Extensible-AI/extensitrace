@@ -11,7 +11,6 @@ setup(
     version='0.0.1',
     packages=find_packages(include=['extensilog', 'extensilog.*']),
     install_requires=required,
-    description='A logger for tracking your agent workflow',
     long_description=long_description,
     license='Apache License 2.0',
     author='Parth Sareen, Omkaar Kamath',
