@@ -40,6 +40,6 @@ jobs:
         run: |
             cd extensilog
             pip install -r requirements.txt
-            python -m build
+            python setup.py sdist bdist_wheel
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
