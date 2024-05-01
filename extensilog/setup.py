@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='extensilog',
-    version='0.1.0',
+    version='0.0.1',
     packages=find_packages(include=['extensilog', 'extensilog.*']),
     install_requires=required,
     author='Parth Sareen, Omkaar Kamath',
@@ -14,8 +14,8 @@ setup(
     url='https://github.com/Extensible-AI/extensilog/',
     classifiers=[
         'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )

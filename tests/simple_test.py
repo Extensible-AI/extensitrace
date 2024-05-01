@@ -28,7 +28,6 @@ if __name__ == '__main__':
     # Load event_log.json and make sure the length is one
     with open('event_log.jsonl', 'r') as file:
         log_data = [json.loads(line) for line in file]
-        print(log_data)
         task_ids = [entry['task_id'] for entry in log_data if 'task_id' in entry]
         print(f"Total log entries: {len(log_data)}")
         print(f"Total unique task_ids: {len(set(task_ids))}")
