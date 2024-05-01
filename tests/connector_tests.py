@@ -4,15 +4,15 @@ from uuid import uuid4
 from extensilog import MongoConnector, PostgresConnector
 
 
-mg_uri = "mongodb+srv://parth:px0rSVKRxZZZOFV6@cluster0.7vx269u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-pg_uri = "postgresql://postgres:3Xtensible123@test.clqqi8meshib.us-east-1.rds.amazonaws.com:5432/postgres"
 date_time = datetime.datetime.now().timestamp()
 uuid = uuid4()
 
 
-with open('data.json', 'r') as file:
-    data = json.load(file)
+data = []
+with open('data.jsonl', 'r') as file:
+    for line in file:
+        data.append(json.loads(line))
 
     
 def mongo_flush(data):

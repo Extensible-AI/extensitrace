@@ -1,6 +1,8 @@
 import json
+from logging import Logger
 import psycopg2
 from psycopg2 import OperationalError, DatabaseError
+from extensilog.model import Task
 
 from .base_connector import BaseConnector
 
@@ -47,21 +49,23 @@ class PostgresConnector(BaseConnector):
             print("No data to insert.")
             return False
 
-        try:
-            cursor = self.connection.cursor()
-            # Transforming JSON data into tuples for insertion
-            columns = json_data[0].keys()
-            values = [tuple(item[column] for column in columns) for item in json_data]
-            query = f"INSERT INTO {self.table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-            cursor.executemany(query, values)
-            self.connection.commit()  # Commit changes
-            cursor.close()
-            print("Data inserted successfully.")
-            return True
-        except DatabaseError as e:
-            print("An error occurred while inserting batch data:", e)
-            return False
-        except Exception as e:
-            print("Unexpected error during batch insertion:", e)
-            return False
+        tasks = [Task(**item) for item in json_data]
 
+        conn = self.connection
+        cur = conn.cursor()
+
+        insert_query = """
+        INSERT INTO logs (log_id, function_name, start_time, end_time, args, result, task_id, agent_id, parent_log_id, metadata, inferred_accuracy, accuracy_reasoning)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        try:
+            cur.executemany(insert_query, [(task.log_id, task.function_name, task.start_time, task.end_time, 
+                                        json.dumps(task.args), json.dumps(task.result), task.task_id, 
+                                        task.agent_id, task.parent_log_id, json.dumps(task.metadata), 
+                                        task.inferred_accuracy, task.accuracy_reasoning) for task in tasks])
+        except Exception as e:
+            Logger.error(f"Error inserting data: {e}")
+
+        conn.commit()
+        cur.close()
