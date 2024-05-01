@@ -3,7 +3,8 @@ import json
 from uuid import uuid4
 from extensilog import MongoConnector, PostgresConnector
 
-
+mg_uri = ""
+pg_uri = ""
 
 date_time = datetime.datetime.now().timestamp()
 uuid = uuid4()
