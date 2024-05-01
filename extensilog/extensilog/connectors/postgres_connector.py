@@ -39,25 +39,29 @@ class PostgresConnector(BaseConnector):
 
 
     def flush(self, json_data: list):
-        if self.connection:
-            try:
-                cursor = self.connection.cursor()
-                # Prepare data for batch insertion
-                if not json_data:
-                    print("No data to insert.")
-                    return False
-
-                columns = json_data[0].keys()
-                query = f"INSERT INTO {self.table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-                cursor.executemany(query, json_data)
-                self.connection.commit()  # Ensure changes are committed if autocommit is not enabled
-                cursor.close()
-                return True
-            except DatabaseError as e:
-                print("An error occurred while inserting batch data:", e)
-            except Exception as e:
-                print("Unexpected error during batch insertion:", e)
-        else:
+        if not self.connection:
             print("Database connection is not established.")
+            return False
+
+        if not json_data:
+            print("No data to insert.")
+            return False
+
+        try:
+            cursor = self.connection.cursor()
+            # Transforming JSON data into tuples for insertion
+            columns = json_data[0].keys()
+            values = [tuple(item[column] for column in columns) for item in json_data]
+            query = f"INSERT INTO {self.table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+            cursor.executemany(query, values)
+            self.connection.commit()  # Commit changes
+            cursor.close()
+            print("Data inserted successfully.")
+            return True
+        except DatabaseError as e:
+            print("An error occurred while inserting batch data:", e)
+            return False
+        except Exception as e:
+            print("Unexpected error during batch insertion:", e)
             return False
 

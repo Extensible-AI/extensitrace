@@ -14,7 +14,7 @@ from .singleton import Singleton
 
 thread_local_storage = threading.local()
 
-class ExtensiLog(metaclass=Singleton):
+class Extensilog(metaclass=Singleton):
     def __init__(self, client=None, log_file='./event_log.json', connector=None):
         self.client = client or openai
         self.log_file = log_file

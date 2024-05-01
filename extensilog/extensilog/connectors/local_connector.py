@@ -12,25 +12,20 @@ class LocalConnector(BaseConnector):
 
     def flush(self, logs: list) -> None:
         """
-        Flushes the provided logs into the local log file.
+        Flushes the provided logs into the local log file without loading the file into memory.
 
-        This method attempts to read the existing data from the log file, appending the new logs to it.
-        If the log file does not exist or is corrupted, it creates a new log file or overwrites the corrupted file.
-        Finally, it writes the combined data back to the log file.
+        This method appends the new logs directly to the log file in a JSON Lines (jsonl) format. 
+        If the log file does not exist, it creates a new log file. This approach allows for efficient 
+        appends and easy parsing of individual log entries without needing to load the entire file into memory.
 
         Args:
             logs (list): A list of log entries to be written to the log file.
         """
-        existing_data = []
         try:
-            with open(self.log_file, 'r') as f:
-                existing_data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            print('Creating new log file or overwriting corrupted file.')
-
-        combined_data = existing_data + logs 
-        try:
-            with open(self.log_file, 'w') as f:
-                json.dump(combined_data, f, indent=2)
+            # Open the file in append mode, creating it if it doesn't exist
+            with open(self.log_file, 'a') as f:
+                for log in logs:
+                    # Write each log entry as a new line in JSON Lines format
+                    f.write(json.dumps(log) + '\n')
         except Exception as e:
-            print(f'Error writing to file: {e}')
+            print(f'Error appending to file: {e}')
