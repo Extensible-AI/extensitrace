@@ -35,10 +35,6 @@ jobs:
           cd extensilog  
           python -m build
           
-      - name: Verify distribution files
-        run: |
-          ls dist/
-          
       - name: Publish the package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
