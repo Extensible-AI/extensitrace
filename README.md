@@ -1,4 +1,4 @@
-# ExtensiLogger 
+# Extensilog 
 ## Key Features
 ### Python Package for Agent Workflow Tracking
 
