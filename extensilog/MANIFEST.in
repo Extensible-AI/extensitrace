@@ -1,0 +1,4 @@
+include extensilog/*.py
+include requirements.txt
+include LICENSE
+recursive-include extensilog *.py
