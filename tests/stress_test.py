@@ -79,10 +79,13 @@ if __name__ == '__main__':
     start_time = time.time()
     run_stress_test_extensilog()
     end_time = time.time()
+    time_extensilog = end_time - start_time
     print(f"Time taken for 1000 extenislog logs: {end_time - start_time} seconds")
 
     start_time = time.time()
     run_stress_test_python()
     end_time = time.time()
+    time_python = end_time - start_time
     print(f"Time taken for 1000 python logs: {end_time - start_time} seconds")
+    print(f"Extensilog/Python time {time_extensilog/time_python}")
 
