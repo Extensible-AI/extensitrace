@@ -4,7 +4,6 @@ certifi==2024.2.2
 charset-normalizer==3.3.2
 distro==1.9.0
 dnspython==2.6.1
-fastask==0.4.6
 h11==0.14.0
 httpcore==1.0.5
 httpx==0.27.0
@@ -17,7 +16,6 @@ pymongo==4.6.3
 python-dotenv==1.0.1
 PyYAML==6.0.1
 requests==2.31.0
-setuptools==69.5.1
 sniffio==1.3.1
 tqdm==4.66.2
 typing_extensions==4.10.0
