@@ -40,7 +40,7 @@ class PostgresConnector(BaseConnector):
             print("Database connection closed.")
 
 
-    def flush(self, json_data: list):
+    def flush(self, json_data: list) -> bool:
         if not self.connection:
             print("Database connection is not established.")
             return False
@@ -52,20 +52,19 @@ class PostgresConnector(BaseConnector):
         tasks = [Task(**item) for item in json_data]
 
         conn = self.connection
-        cur = conn.cursor()
-
-        insert_query = """
-        INSERT INTO logs (log_id, function_name, start_time, end_time, args, result, task_id, agent_id, parent_log_id, metadata, inferred_accuracy, accuracy_reasoning)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-
         try:
+            cur = conn.cursor()
+            insert_query = """
+            INSERT INTO logs (log_id, function_name, start_time, end_time, args, result, task_id, agent_id, parent_log_id, metadata, inferred_accuracy, accuracy_reasoning)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
             cur.executemany(insert_query, [(task.log_id, task.function_name, task.start_time, task.end_time, 
-                                        json.dumps(task.args), json.dumps(task.result), task.task_id, 
-                                        task.agent_id, task.parent_log_id, json.dumps(task.metadata), 
-                                        task.inferred_accuracy, task.accuracy_reasoning) for task in tasks])
+                                            json.dumps(task.args), json.dumps(task.result), task.task_id, 
+                                            task.agent_id, task.parent_log_id, json.dumps(task.metadata), 
+                                            task.inferred_accuracy, task.accuracy_reasoning) for task in tasks])
+            conn.commit()
+            cur.close()
+            return True
         except Exception as e:
-            Logger.error(f"Error inserting data: {e}")
-
-        conn.commit()
-        cur.close()
+            print(f"Error inserting data: {e}")
+            return False

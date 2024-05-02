@@ -7,6 +7,7 @@ from queue import Queue
 import threading
 import uuid
 import openai
+import atexit
 
 from .connectors.local_connector import LocalConnector
 from .singleton import Singleton
@@ -15,30 +16,52 @@ from .singleton import Singleton
 thread_local_storage = threading.local()
 
 class Extensilog(metaclass=Singleton):
-    def __init__(self, client=None, log_file='./event_log.json', connector=None):
+    def __init__(self, client=None, log_file='./event_log.json', connector=None, task_flush_limit=1):
         self.client = client or openai
         self.log_file = log_file
         self.lock = threading.Lock()
         self.agent_id = str(uuid.uuid4())
         self.data_store = dict() 
-        self.connector = LocalConnector(log_file) if connector is None else connector 
+        self.connector = connector or LocalConnector(log_file)
+        self.task_flush_limit = task_flush_limit
+        self.task_flush_ids = Queue() 
+        self.task_count = 0
+        atexit.register(self.__on_exit)
+
+
+    def __on_exit(self):
+        """
+        Method to ensure all remaining logs are flushed upon program interruption or shutdown.
+        """
+        with self.lock:
+            while not self.task_flush_ids.empty():
+                task_id = self.task_flush_ids.get()
+                self.__flush_queue(task_id)
+            self.task_count = 0
+            self.data_store = dict()  # Optionally reset the data store if needed
+            print("Program interrupted. All pending logs have been flushed.")
 
 
     def log(self, track=False):
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
+                if track and hasattr(thread_local_storage, 'task_id') and len(self.data_store[thread_local_storage.task_id]['call_stack']) > 0:
+                    raise ValueError("Cannot track a top level function that is already part of a task.")
                 if not hasattr(thread_local_storage, 'task_id') or track:
                     thread_local_storage.task_id = str(uuid.uuid4())
                     with self.lock:
-                        self.data_store[thread_local_storage.task_id] = dict() 
-                        self.data_store[thread_local_storage.task_id]['queue'] = Queue()
-                        self.data_store[thread_local_storage.task_id]['client'] = self.client
-                        self.data_store[thread_local_storage.task_id]['call_stack'] = []
-                        self.data_store[thread_local_storage.task_id]['patched'] = False 
-                        self.data_store[thread_local_storage.task_id]['completion_ids'] = set()
-                        self.data_store[thread_local_storage.task_id]['last_openai_call'] = {} 
-                        self.data_store[thread_local_storage.task_id]['metadata'] = None 
+                        self.task_flush_ids.put(thread_local_storage.task_id)
+                        self.task_count += 1
+                        self.data_store[thread_local_storage.task_id] = {
+                            'queue': Queue(),
+                            'client': self.client,
+                            'call_stack': [],
+                            'patched': False,
+                            'completion_ids': set(),
+                            'last_openai_call': {},
+                            'metadata': None
+                        }
 
                 with self.lock:
                     self.data_store[thread_local_storage.task_id]['call_stack'].append((func.__name__, str(uuid.uuid4())))
@@ -180,20 +203,23 @@ class Extensilog(metaclass=Singleton):
             self.data_store[task_id]['last_openai_call'][openai_id] = log_entry['log_id'] 
 
         self.data_store[task_id]['queue'].put(log_entry)
-        if len(self.data_store[task_id]['call_stack']) == 0:
-            self.__flush_queue()
+
+        if len(self.data_store[task_id]['call_stack']) == 0 and self.task_count >= self.task_flush_limit:
+            # TODO: to be made non-blocking
+            removed = 0
+            while removed < self.task_flush_limit: 
+                task_id = self.task_flush_ids.get()
+                removed += 1
+                self.__flush_queue(task_id)
+            self.task_count -= self.task_flush_limit
 
 
-    def __flush_queue(self):
-
-
+    def __flush_queue(self, task_id):
         new_data = []
-        task_id = thread_local_storage.task_id
         while not self.data_store[task_id]['queue'].empty():
             log_entry = self.data_store[task_id]['queue'].get()
             # Skip the loop if the log id is not the last openai call
             if log_entry['function_name'] == 'openai.chat.completions.create' and self.data_store[task_id]['last_openai_call'][log_entry['result']['id']] != log_entry['log_id']:
                 continue
             new_data.append(log_entry)
-        
         self.connector.flush(new_data)
