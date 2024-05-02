@@ -8,7 +8,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='extensilog',
-    version='0.0.2',
+    version='0.0.3',
     packages=find_packages(include=['extensilog', 'extensilog.*']),
     install_requires=required,
     long_description=long_description,
