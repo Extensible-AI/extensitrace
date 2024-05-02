@@ -26,6 +26,7 @@ class Extensilog(metaclass=Singleton):
         self.task_flush_limit = task_flush_limit
         self.task_flush_ids = Queue() 
         self.task_count = 0
+        self.to_flush = []
         atexit.register(self.__on_exit)
 
 
@@ -36,7 +37,8 @@ class Extensilog(metaclass=Singleton):
         with self.lock:
             while not self.task_flush_ids.empty():
                 task_id = self.task_flush_ids.get()
-                self.__flush_queue(task_id)
+                self.__add_to_flush(task_id)
+            self.__flush_queue()
             self.task_count = 0
             self.data_store = dict()  # Optionally reset the data store if needed
             print("Program interrupted. All pending logs have been flushed.")
@@ -210,16 +212,22 @@ class Extensilog(metaclass=Singleton):
             while removed < self.task_flush_limit: 
                 task_id = self.task_flush_ids.get()
                 removed += 1
-                self.__flush_queue(task_id)
+                self.__add_to_flush(task_id)
             self.task_count -= self.task_flush_limit
+            self.__flush_queue()
 
 
-    def __flush_queue(self, task_id):
-        new_data = []
+    # TODO: add batch flushing with storing in memory
+    def __add_to_flush(self, task_id):
         while not self.data_store[task_id]['queue'].empty():
             log_entry = self.data_store[task_id]['queue'].get()
             # Skip the loop if the log id is not the last openai call
             if log_entry['function_name'] == 'openai.chat.completions.create' and self.data_store[task_id]['last_openai_call'][log_entry['result']['id']] != log_entry['log_id']:
                 continue
-            new_data.append(log_entry)
-        self.connector.flush(new_data)
+            self.to_flush.append(log_entry)
+
+    
+    def __flush_queue(self):
+        if self.to_flush:
+            self.connector.flush(self.to_flush)
+            self.to_flush.clear()

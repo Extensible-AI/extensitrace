@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
+import atexit
 
 from .base_connector import BaseConnector
 
@@ -17,15 +18,15 @@ class MongoConnector(BaseConnector):
         try:
             # Verify server connectivity
             self.client.admin.command('ping')
-            print('successful')
         except ConnectionFailure as e:
             print("Failed to connect to MongoDB:", e)
         except OperationFailure as e:
             print("Authentication failed:", e)
+        atexit.register(self.close_connection)
 
-    def __del__(self):
+    def close_connection(self):
         """
-        Destructor to close the MongoDB connection when the object is deleted.
+        Close the MongoDB connection.
         """
         if self.client:
             self.client.close()

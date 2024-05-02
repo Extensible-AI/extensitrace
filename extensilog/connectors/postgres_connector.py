@@ -1,7 +1,7 @@
 import json
-from logging import Logger
 import psycopg2
-from psycopg2 import OperationalError, DatabaseError
+import atexit
+from psycopg2 import OperationalError
 from extensilog.model import Task
 
 from .base_connector import BaseConnector
@@ -22,13 +22,7 @@ class PostgresConnector(BaseConnector):
             print('Connection successful')
         except OperationalError as e:
             print("Failed to connect to PostgreSQL:", e)
-    
-
-    def __del__(self):
-        """
-        Destructor method to ensure the connection is closed when the object is deleted.
-        """
-        self.close()
+        atexit.register(self.close)
 
         
     def close(self):

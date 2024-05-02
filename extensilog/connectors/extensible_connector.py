@@ -4,12 +4,12 @@ import json
 
 
 class ExtensibleConnector(BaseConnector):
-    def __init__(self):
+    def __init__(self, endpoint: str="http://127.0.0.1:5000/api/push_tasks"):
         """
         Initialize the Extensible Connector.
         """
         self.credentials = {}
-        self.endpoint = "http://127.0.0.1:5000/api/push_tasks"
+        self.endpoint = endpoint 
 
 
     def flush(self, logs: list):

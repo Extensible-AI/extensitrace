@@ -1,4 +1,5 @@
 import json
+import time
 from extensilog import Extensilog, Task
 
 
@@ -19,7 +20,6 @@ def test3():
     pass
 
 def check_num_task_ids():
-            # tasks = [Task(**item) for item in json_data]
     with open('event_log.jsonl', 'r') as file:
         json_data = [json.loads(line) for line in file]
         log_data = [Task(**entry) for entry in json_data]
@@ -33,9 +33,8 @@ if __name__ == '__main__':
         file.write('')
 
     for i in range(25):
-        print(i)
         test()
         if i == 9:
             assert check_num_task_ids() == 10
-            x = input('Press enter to continue...')
-    print(check_num_task_ids()) 
+    assert check_num_task_ids() == 20 
+    # Upon destruction there will be 5 tasks which will also be flushed
