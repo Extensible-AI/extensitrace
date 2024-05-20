@@ -1,9 +1,9 @@
 import json
 import time
-from extensilog import Extensilog, Task
+from extensitrace import ExtensiTrace, Task
 
 
-logger: Extensilog = Extensilog(log_file='event_log.jsonl', task_flush_limit=10)
+logger: ExtensiTrace = ExtensiTrace(log_file='event_log.jsonl', task_flush_limit=10)
 
 @logger.log(track=True)
 def test():

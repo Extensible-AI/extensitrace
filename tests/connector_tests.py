@@ -1,7 +1,7 @@
 import datetime
 import json
 from uuid import uuid4
-from extensilog import MongoConnector, PostgresConnector
+from extensitrace import MongoConnector, PostgresConnector
 
 mg_uri = ""
 pg_uri = ""

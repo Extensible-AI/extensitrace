@@ -1,7 +1,6 @@
 import contextlib
 import inspect
 import functools
-import json
 from datetime import datetime
 from queue import Queue
 import threading
@@ -15,7 +14,7 @@ from .singleton import Singleton
 
 thread_local_storage = threading.local()
 
-class Extensilog(metaclass=Singleton):
+class ExtensiTrace(metaclass=Singleton):
     def __init__(self, client=None, log_file='./event_log.json', connector=None, task_flush_limit=1):
         self.client = client or openai
         self.log_file = log_file

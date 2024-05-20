@@ -2,7 +2,7 @@ import json
 import psycopg2
 import atexit
 from psycopg2 import OperationalError
-from extensilog.model import Task
+from extensitrace.model import Task
 
 from .base_connector import BaseConnector
 

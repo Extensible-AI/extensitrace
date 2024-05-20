@@ -1,11 +1,11 @@
 import json
-from extensilog import Extensilog 
+from extensitrace import ExtensiTrace 
 
 with open('event_log.jsonl', 'w') as file:
     file.write('')
 
 
-logger: Extensilog = Extensilog(log_file='event_log.jsonl')
+logger: ExtensiTrace = ExtensiTrace(log_file='event_log.jsonl')
 
 @logger.log(track=True)
 def test():
