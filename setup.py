@@ -7,9 +7,9 @@ with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='extensilog',
-    version='0.0.3',
-    packages=find_packages(include=['extensilog', 'extensilog.*']),
+    name='extensitrace',
+    version='0.0.1',
+    packages=find_packages(include=['extensitrace', 'extensitrace.*']),
     install_requires=required,
     long_description=long_description,
     long_description_content_type='text/markdown',

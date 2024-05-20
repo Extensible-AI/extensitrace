@@ -1,11 +1,11 @@
 import json
 import os
 import time
-from extensilog import Extensilog 
+from extensitrace import ExtensiTrace 
 from threading import Thread
 import logging
 
-logger: Extensilog = Extensilog(log_file='extensilog.jsonl')
+logger: ExtensiTrace = ExtensiTrace(log_file='extensitrace.jsonl')
 
 def log_generator(index):
     @logger.log(track=True)
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     except FileNotFoundError:
         pass
     try:
-        os.remove('extensilog.jsonl')
+        os.remove('extensitrace.jsonl')
     except FileNotFoundError:
         pass
     start_time = time.time()
