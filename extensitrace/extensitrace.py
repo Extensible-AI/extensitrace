@@ -15,11 +15,11 @@ from .singleton import Singleton
 thread_local_storage = threading.local()
 
 class ExtensiTrace(metaclass=Singleton):
-    def __init__(self, client=None, log_file='./event_log.json', connector=None, task_flush_limit=1):
+    def __init__(self, client=None, log_file='./event_log.json', agent_id=None, connector=None, task_flush_limit=1):
         self.client = client or openai
         self.log_file = log_file
         self.lock = threading.Lock()
-        self.agent_id = str(uuid.uuid4())
+        self.agent_id = agent_id or str(uuid.uuid4())
         self.data_store = dict() 
         self.connector = connector or LocalConnector(log_file)
         self.task_flush_limit = task_flush_limit
@@ -43,14 +43,16 @@ class ExtensiTrace(metaclass=Singleton):
             print("Program interrupted. All pending logs have been flushed.")
 
 
-    def log(self, track=False):
+    # The expectation if you're using task_id is that you are responsible for managing the context around it
+    # Task id can only be set at the top level function
+    def log(self, track=False, task_id=None):
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 if track and hasattr(thread_local_storage, 'task_id') and len(self.data_store[thread_local_storage.task_id]['call_stack']) > 0:
                     raise ValueError("Cannot track a top level function that is already part of a task.")
                 if not hasattr(thread_local_storage, 'task_id') or track:
-                    thread_local_storage.task_id = str(uuid.uuid4())
+                    thread_local_storage.task_id = task_id or str(uuid.uuid4())
                     with self.lock:
                         self.task_flush_ids.put(thread_local_storage.task_id)
                         self.task_count += 1
