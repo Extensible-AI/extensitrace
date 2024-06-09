@@ -1,30 +1,51 @@
-# Extensilog 
-## Key Features
+# ExtensiTrace
 ### Python Package for Agent Workflow Tracking
 
-ExtensiLogger is designed to facilitate comprehensive logging and tracking within agent-based systems or workflows. It provides a structured way to log events, data, and metrics, making it easier to monitor and analyze the behavior of agents in various environments.
+ExtensiTrace allows for a simple way to track all agent actions including python functions and all openai tool calls. 
+
+### Install from PyPI
+`pip install extensitrace`
 
 ### Usage 
 
-The package can be easily installed using pip. Navigate to the extensilog directory and install using the following commands:
-
-#### Install from PyPI
-`pip install extensilog`
-
-#### Incorporating in code
-
 ```python
-from extensilog import MongoConnector
+from extensitrace import ExtensiTrace
 
 client = OpenAI() # Optional to pass in
 connector = MongoConnector(...) # Optional connector, defaults to local
-el: Extensilog = Extensilog(connector=connector)
+# Logger writes to a jsonl file locally by default 
+et: ExtensiTrace = ExtensiTrace(connector=connector) # See constructor in extensitrace/extensitrace.py for more info
 
-el.log(track=True)
+# Need track=True for top level
+et.log(track=True)
 def top_level_func():
     lower_level_func()
     
-el.log()
+et.log()
 def lower_level_func():
     pass
+```
+
+### Notes to keep in mind
+- Tracks one openai call per function
+- Streaming openai calls not captured - the tracer is meant for tracking tool calls 
+- Support for Openai only right now
+- The client objects should be the same across files if it is being passed in manually
+- Singleton class, however instantiation methods across files must match, recommend creating and importing from a file (see example below)
+- If this is very useful to you and want to use it in prod I'm happy to write an async interface for log dumps
+
+
+### Recommended Setup
+
+`tracer.py`
+```python
+from extensitrace import ExtensiTrace
+
+et: ExtensiTrace = ExtensiTrace(connector=connector) 
+
+```
+
+`main.py`
+```python
+from tracer import et
 ```
