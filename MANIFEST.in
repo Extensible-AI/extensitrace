@@ -1,0 +1,4 @@
+include extensitrace/*.py
+include requirements.txt
+include LICENSE
+recursive-include extensitrace*.py
