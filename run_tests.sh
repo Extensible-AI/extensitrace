@@ -5,3 +5,4 @@ python tests/simple_test.py
 python tests/stress_test.py
 python tests/batch_testing.py
 python tests/verify_extra.py
+python tests/injection_testing.py
