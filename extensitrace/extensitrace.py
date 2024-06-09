@@ -15,7 +15,7 @@ from .singleton import Singleton
 thread_local_storage = threading.local()
 
 class ExtensiTrace(metaclass=Singleton):
-    def __init__(self, client=None, log_file='./event_log.json', agent_id=None, connector=None, task_flush_limit=1):
+    def __init__(self, client=None, log_file='./event_log.jsonl', agent_id=None, connector=None, task_flush_limit=1):
         self.client = client or openai
         self.log_file = log_file
         self.lock = threading.Lock()
